@@ -213,6 +213,11 @@ export function NutritionWaterPage() {
     if (data) setWaterLogs((prev) => [...prev, data as WaterLog]);
   };
 
+  const deleteWater = async (id: string) => {
+    setWaterLogs((prev) => prev.filter((w) => w.id !== id));
+    await supabase.from("water_log").delete().eq("id", id);
+  };
+
   const totals = logs.reduce(
     (acc, l) => ({ calories: acc.calories + l.calories, protein: acc.protein + l.protein_g, carbs: acc.carbs + l.carbs_g, fat: acc.fat + l.fat_g }),
     { calories: 0, protein: 0, carbs: 0, fat: 0 }
@@ -298,9 +303,14 @@ export function NutritionWaterPage() {
             {waterLogs.map((log) => (
               <div key={log.id} className="flex items-center justify-between rounded-xl bg-card p-3 text-sm">
                 <span>{log.amount_ml} ml</span>
-                <span className="text-xs text-neutral-500">
-                  {new Date(log.logged_at).toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" })}
-                </span>
+                <div className="flex items-center gap-3">
+                  <span className="text-xs text-neutral-500">
+                    {new Date(log.logged_at).toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" })}
+                  </span>
+                  <button onClick={() => deleteWater(log.id)} className="text-neutral-600 active:text-red-500">
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
               </div>
             ))}
           </div>
