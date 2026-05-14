@@ -103,17 +103,15 @@ export function SettingsPage() {
           <Input value={name} onChange={(e) => setName(e.target.value)}
             className="bg-neutral-800 border-none" />
         </div>
-        <div className="grid grid-cols-2 gap-3">
-          <div className="space-y-1">
-            <label className="text-xs text-neutral-500">Größe (cm)</label>
-            <Input type="number" value={heightCm || ""} onChange={(e) => setHeightCm(Number(e.target.value))}
-              className="bg-neutral-800 border-none" />
-          </div>
-          <div className="space-y-1">
-            <label className="text-xs text-neutral-500">Geburtsdatum</label>
-            <Input type="date" value={birthDate} onChange={(e) => setBirthDate(e.target.value)}
-              className="bg-neutral-800 border-none" />
-          </div>
+        <div className="space-y-1">
+          <label className="text-xs text-neutral-500">Größe (cm)</label>
+          <Input type="number" value={heightCm || ""} onChange={(e) => setHeightCm(Number(e.target.value))}
+            className="bg-neutral-800 border-none" />
+        </div>
+        <div className="space-y-1">
+          <label className="text-xs text-neutral-500">Geburtsdatum</label>
+          <Input type="text" value={birthDate} onChange={(e) => setBirthDate(e.target.value)}
+            placeholder="TT.MM.JJJJ" className="bg-neutral-800 border-none" />
         </div>
       </div>
 
