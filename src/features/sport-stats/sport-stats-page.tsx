@@ -46,6 +46,7 @@ export function SportStatsPage() {
   const [loading, setLoading] = useState(true);
   const [timeRange, setTimeRange] = useState<"1W" | "1M" | "1Y" | "All">("1M");
   const [metricTab, setMetricTab] = useState<"1RM" | "Max Weight" | "Volume" | "Total Reps">("1RM");
+  const [insightTab, setInsightTab] = useState<"global" | "exercises">("global");
 
   // Training calendar
   const [trainingDays, setTrainingDays] = useState<Set<string>>(new Set());
@@ -246,19 +247,51 @@ export function SportStatsPage() {
       {/* Insight Scores */}
       <div className="rounded-xl bg-card p-4">
         <div className="mb-3 flex gap-2">
-          <button className="rounded-lg bg-white px-3 py-1 text-xs font-semibold text-black">Global</button>
-          <button className="rounded-lg px-3 py-1 text-xs text-neutral-500">Übungen</button>
+          <button onClick={() => setInsightTab("global")}
+            className={`rounded-lg px-3 py-1 text-xs font-semibold transition-all ${
+              insightTab === "global" ? "bg-white text-black" : "text-neutral-500"
+            }`}>Global</button>
+          <button onClick={() => setInsightTab("exercises")}
+            className={`rounded-lg px-3 py-1 text-xs font-semibold transition-all ${
+              insightTab === "exercises" ? "bg-white text-black" : "text-neutral-500"
+            }`}>Übungen</button>
         </div>
-        <div className="flex justify-around">
-          <ScoreRing value={scores.progress} maxValue={10} label="Progress" color="#ffffff"
-            icon={<TrendingUp className="h-3 w-3 text-neutral-500" />} />
-          <ScoreRing value={scores.consistency} maxValue={10} label="Consistency" color="#ffffff"
-            icon={<Activity className="h-3 w-3 text-neutral-500" />} />
-          <ScoreRing value={scores.intensity} maxValue={10} label="Intensity" color="#ffffff"
-            icon={<Zap className="h-3 w-3 text-neutral-500" />} />
-          <ScoreRing value={scores.volume} maxValue={10} label="Volume" color="#ffffff"
-            icon={<BarChart3 className="h-3 w-3 text-neutral-500" />} />
-        </div>
+        {insightTab === "global" ? (
+          <div className="flex justify-around">
+            <ScoreRing value={scores.progress} maxValue={10} label="Progress" color="#ffffff"
+              icon={<TrendingUp className="h-3 w-3 text-neutral-500" />} />
+            <ScoreRing value={scores.consistency} maxValue={10} label="Consistency" color="#ffffff"
+              icon={<Activity className="h-3 w-3 text-neutral-500" />} />
+            <ScoreRing value={scores.intensity} maxValue={10} label="Intensity" color="#ffffff"
+              icon={<Zap className="h-3 w-3 text-neutral-500" />} />
+            <ScoreRing value={scores.volume} maxValue={10} label="Volume" color="#ffffff"
+              icon={<BarChart3 className="h-3 w-3 text-neutral-500" />} />
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {exercises.length === 0 ? (
+              <p className="py-4 text-center text-sm text-neutral-500">Keine Übungen</p>
+            ) : exercises.map((ex) => {
+              const exLogs = strengthData;
+              const latest = selectedExercise === ex.id && exLogs.length > 0
+                ? exLogs[exLogs.length - 1].estimated1RM : 0;
+              return (
+                <button key={ex.id} onClick={() => fetchExerciseStrength(ex.id)}
+                  className={`flex w-full items-center justify-between rounded-lg p-2.5 text-left transition-all ${
+                    selectedExercise === ex.id ? "bg-neutral-800" : ""
+                  }`}>
+                  <div>
+                    <p className="text-sm font-medium">{ex.name}</p>
+                    <p className="text-xs text-neutral-500">{ex.muscle_group}</p>
+                  </div>
+                  {selectedExercise === ex.id && latest > 0 && (
+                    <span className="text-sm font-bold">{latest}kg</span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* Time range selector */}
