@@ -1,6 +1,7 @@
 import { lazy, Suspense } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { Layout } from "@/components/layout";
+import { WorkoutProvider } from "@/lib/workout-context";
 
 const DashboardPage = lazy(() => import("@/features/dashboard/dashboard-page").then((m) => ({ default: m.DashboardPage })));
 const AlltagPage = lazy(() => import("@/features/alltag/alltag-page").then((m) => ({ default: m.AlltagPage })));
@@ -24,6 +25,7 @@ function Loading() {
 export default function App() {
   return (
     <BrowserRouter basename="/life-manager">
+      <WorkoutProvider>
       <Suspense fallback={<Loading />}>
         <Routes>
           <Route element={<Layout />}>
@@ -54,6 +56,7 @@ export default function App() {
           </Route>
         </Routes>
       </Suspense>
+      </WorkoutProvider>
     </BrowserRouter>
   );
 }

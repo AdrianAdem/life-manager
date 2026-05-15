@@ -17,6 +17,7 @@ export function DashboardPage() {
   const [latestWeight, setLatestWeight] = useState<WeightLog | null>(null);
   const [trainingCount, setTrainingCount] = useState(0);
   const [routineStats, setRoutineStats] = useState<{ total: number; done: number; items: { name: string; done: boolean; area: string }[] }>({ total: 0, done: 0, items: [] });
+  const [calorieGoal, setCalorieGoal] = useState(2500);
   const [loading, setLoading] = useState(true);
 
   const fetchDashboard = useCallback(async () => {
@@ -43,6 +44,10 @@ export function DashboardPage() {
     }
     if (weightRes.data?.[0]) setLatestWeight(weightRes.data[0] as WeightLog);
     if (trainingRes.data) setTrainingCount(trainingRes.data.length);
+
+    const { data: profile } = await supabase
+      .from("user_profiles").select("calorie_goal").eq("id", USER_ID).single();
+    if (profile?.calorie_goal) setCalorieGoal(profile.calorie_goal);
 
     // Fetch routines
     const { data: routinesData } = await supabase
@@ -105,7 +110,7 @@ export function DashboardPage() {
           icon={<Flame className="h-5 w-5 text-orange-500" />}
           label="Kalorien"
           value={`${nutritionTotal.calories}`}
-          sub="/ 2500 kcal"
+          sub={`/ ${calorieGoal} kcal`}
           onClick={() => navigate("/sport/ernaehrung")}
         />
         <StatCard
