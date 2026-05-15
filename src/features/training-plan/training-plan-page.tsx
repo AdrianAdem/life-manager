@@ -14,6 +14,7 @@ interface ExerciseInput {
 }
 
 export function TrainingPlanPage() {
+  const [plans, setPlans] = useState<TrainingPlan[]>([]);
   const [activePlan, setActivePlan] = useState<TrainingPlan | null>(null);
   const [exercises, setExercises] = useState<TrainingExercise[]>([]);
   const [loading, setLoading] = useState(true);
@@ -30,16 +31,26 @@ export function TrainingPlanPage() {
   const [newEx, setNewEx] = useState<ExerciseInput>({ name: "", muscle_group: "", sets: 3, reps: 10, day_label: "Tag A" });
 
   const fetchPlan = useCallback(async () => {
-    const { data: plan } = await supabase
-      .from("training_plans").select("*").eq("user_id", USER_ID).eq("is_active", true).single();
-    if (plan) {
-      setActivePlan(plan as TrainingPlan);
+    const { data: allPlans } = await supabase
+      .from("training_plans").select("*").eq("user_id", USER_ID).eq("is_active", true).order("created_at", { ascending: false });
+    if (allPlans && allPlans.length > 0) {
+      setPlans(allPlans as TrainingPlan[]);
+      const first = allPlans[0] as TrainingPlan;
+      setActivePlan(first);
       const { data: exs } = await supabase
-        .from("training_exercises").select("*").eq("plan_id", plan.id).order("order_index");
+        .from("training_exercises").select("*").eq("plan_id", first.id).order("order_index");
       if (exs) setExercises(exs as TrainingExercise[]);
     }
     setLoading(false);
   }, []);
+
+  const switchPlan = async (plan: TrainingPlan) => {
+    setActivePlan(plan);
+    const { data: exs } = await supabase
+      .from("training_exercises").select("*").eq("plan_id", plan.id).order("order_index");
+    if (exs) setExercises(exs as TrainingExercise[]);
+    else setExercises([]);
+  };
 
   useEffect(() => { fetchPlan(); }, [fetchPlan]);
 
@@ -113,8 +124,14 @@ export function TrainingPlanPage() {
   const deletePlan = async () => {
     if (!activePlan) return;
     await supabase.from("training_plans").delete().eq("id", activePlan.id);
-    setActivePlan(null);
-    setExercises([]);
+    const remaining = plans.filter((p) => p.id !== activePlan.id);
+    setPlans(remaining);
+    if (remaining.length > 0) {
+      switchPlan(remaining[0]);
+    } else {
+      setActivePlan(null);
+      setExercises([]);
+    }
   };
 
   // Available day labels from current exercises
@@ -202,6 +219,20 @@ export function TrainingPlanPage() {
             className="w-full rounded-xl bg-white py-3 text-sm font-semibold text-black disabled:opacity-30 active:scale-[0.98]">
             Plan erstellen & aktivieren
           </button>
+        </div>
+      )}
+
+      {/* Plan Switcher */}
+      {plans.length > 1 && !showNewPlan && (
+        <div className="flex gap-2 overflow-x-auto">
+          {plans.map((p) => (
+            <button key={p.id} onClick={() => switchPlan(p)}
+              className={`whitespace-nowrap rounded-lg px-3 py-2 text-xs font-medium transition-all ${
+                activePlan?.id === p.id ? "bg-white text-black" : "bg-neutral-800 text-neutral-400"
+              }`}>
+              {p.name}
+            </button>
+          ))}
         </div>
       )}
 
