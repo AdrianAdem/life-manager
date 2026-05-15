@@ -38,6 +38,7 @@ export function TrainingLogPage() {
   const [restDuration, setRestDuration] = useState(DEFAULT_REST);
   const [timerActive, setTimerActive] = useState(false);
   const timerRef = useRef<ReturnType<typeof setInterval>>(undefined);
+  const restEndTime = useRef<number>(0);
   const workoutStartTime = useRef<Date | null>(null);
   const [summary, setSummary] = useState<WorkoutSummary | null>(null);
   const [history, setHistory] = useState<{ date: string; exercises: { name: string; sets: SetLog[] }[] }[]>([]);
@@ -76,19 +77,19 @@ export function TrainingLogPage() {
 
   useEffect(() => { fetchActivePlan(); }, [fetchActivePlan]);
 
-  // Timer tick
+  // Timer tick — uses absolute end time so screen-off doesn't break it
   useEffect(() => {
     if (!timerActive) return;
-    timerRef.current = setInterval(() => {
-      setRestTimer((prev) => {
-        if (prev <= 1) {
-          clearInterval(timerRef.current);
-          setTimerActive(false);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
+    const tick = () => {
+      const remaining = Math.max(0, Math.round((restEndTime.current - Date.now()) / 1000));
+      setRestTimer(remaining);
+      if (remaining <= 0) {
+        clearInterval(timerRef.current);
+        setTimerActive(false);
+      }
+    };
+    tick();
+    timerRef.current = setInterval(tick, 500);
     return () => clearInterval(timerRef.current);
   }, [timerActive]);
 
@@ -184,17 +185,20 @@ export function TrainingLogPage() {
   };
 
   const startRestTimer = () => {
+    restEndTime.current = Date.now() + restDuration * 1000;
     setRestTimer(restDuration);
     setTimerActive(true);
   };
 
   const skipTimer = () => {
     clearInterval(timerRef.current);
+    restEndTime.current = 0;
     setRestTimer(0);
     setTimerActive(false);
   };
 
   const adjustTimer = (delta: number) => {
+    restEndTime.current = restEndTime.current + delta * 1000;
     setRestTimer((prev) => Math.max(0, prev + delta));
   };
 
@@ -282,7 +286,7 @@ export function TrainingLogPage() {
             <X className="h-5 w-5" />
           </button>
         </div>
-        <div className="flex flex-1 flex-col items-center justify-center gap-6">
+        <div className="flex flex-col items-center justify-center gap-6 py-8">
           <p className="text-lg text-neutral-400">Glückwunsch!</p>
           <div className="text-center">
             <p className="text-neutral-400">Du hast</p>
@@ -296,20 +300,8 @@ export function TrainingLogPage() {
             </p>
             <p className="text-neutral-400">absolviert</p>
           </div>
-          <div className="flex gap-3">
-            <div className="flex items-center gap-1.5 rounded-full bg-neutral-800 px-3 py-1.5">
-              <Flame className="h-4 w-4 text-orange-500" />
-              <span className="text-sm">{Math.round(summary.totalWeightKg * 0.03)} kcal</span>
-            </div>
-            {summary.records > 0 && (
-              <div className="flex items-center gap-1.5 rounded-full bg-neutral-800 px-3 py-1.5">
-                <Trophy className="h-4 w-4 text-yellow-500" />
-                <span className="text-sm">{summary.records} Rekord{summary.records > 1 ? "e" : ""}</span>
-              </div>
-            )}
-          </div>
         </div>
-        <div className="space-y-2">
+        <div className="space-y-2 px-2">
           {summary.exercises.map((ex, i) => (
             <div key={i} className="flex items-center justify-between rounded-xl bg-card p-4">
               <div>
@@ -326,6 +318,18 @@ export function TrainingLogPage() {
               </div>
             </div>
           ))}
+        </div>
+        <div className="flex justify-center gap-3 py-4">
+          <div className="flex items-center gap-1.5 rounded-full bg-neutral-800 px-3 py-1.5">
+            <Flame className="h-4 w-4 text-orange-500" />
+            <span className="text-sm">{Math.round(summary.totalWeightKg * 0.03)} kcal</span>
+          </div>
+          {summary.records > 0 && (
+            <div className="flex items-center gap-1.5 rounded-full bg-neutral-800 px-3 py-1.5">
+              <Trophy className="h-4 w-4 text-yellow-500" />
+              <span className="text-sm">{summary.records} Rekord{summary.records > 1 ? "e" : ""}</span>
+            </div>
+          )}
         </div>
       </div>
     );
