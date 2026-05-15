@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from "react";
-import { Plus, Trash2, X } from "lucide-react";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { Plus, Trash2, X, GripVertical } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { USER_ID } from "@/lib/constants";
 import { Input } from "@/components/ui/input";
@@ -119,6 +119,76 @@ export function TrainingPlanPage() {
   const deleteExercise = async (id: string) => {
     setExercises((prev) => prev.filter((e) => e.id !== id));
     await supabase.from("training_exercises").delete().eq("id", id);
+  };
+
+  // Drag reorder
+  const dragItem = useRef<string | null>(null);
+  const dragOverItem = useRef<string | null>(null);
+  const [dragId, setDragId] = useState<string | null>(null);
+
+  const handleDragStart = (id: string) => {
+    dragItem.current = id;
+    setDragId(id);
+  };
+
+  const handleDragEnter = (id: string) => {
+    dragOverItem.current = id;
+    if (!dragItem.current || dragItem.current === id) return;
+
+    setExercises((prev) => {
+      const arr = [...prev];
+      const fromIdx = arr.findIndex((e) => e.id === dragItem.current);
+      const toIdx = arr.findIndex((e) => e.id === id);
+      if (fromIdx === -1 || toIdx === -1) return prev;
+      const [moved] = arr.splice(fromIdx, 1);
+      arr.splice(toIdx, 0, moved);
+      return arr;
+    });
+  };
+
+  const handleDragEnd = async () => {
+    setDragId(null);
+    dragItem.current = null;
+    dragOverItem.current = null;
+
+    const updates = exercises.map((ex, idx) => ({
+      id: ex.id,
+      order_index: idx,
+    }));
+    await Promise.all(
+      updates.map((u) =>
+        supabase.from("training_exercises").update({ order_index: u.order_index }).eq("id", u.id)
+      )
+    );
+  };
+
+  // Touch drag support
+  const touchStartY = useRef(0);
+  const touchCurrentEl = useRef<string | null>(null);
+
+  const handleTouchStart = (id: string, e: React.TouchEvent) => {
+    dragItem.current = id;
+    setDragId(id);
+    touchStartY.current = e.touches[0].clientY;
+    touchCurrentEl.current = id;
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!dragItem.current) return;
+    const touch = e.touches[0];
+    const el = document.elementFromPoint(touch.clientX, touch.clientY);
+    if (!el) return;
+    const card = el.closest("[data-exercise-id]");
+    if (!card) return;
+    const overId = card.getAttribute("data-exercise-id");
+    if (overId && overId !== touchCurrentEl.current) {
+      touchCurrentEl.current = overId;
+      handleDragEnter(overId);
+    }
+  };
+
+  const handleTouchEnd = () => {
+    handleDragEnd();
   };
 
   const deletePlan = async () => {
@@ -256,7 +326,24 @@ export function TrainingPlanPage() {
             <div key={day} className="space-y-2">
               <p className="text-xs font-semibold uppercase tracking-wider text-neutral-500">{day}</p>
               {exs.map((ex) => (
-                <div key={ex.id} className="flex items-center gap-3 rounded-xl bg-card p-3">
+                <div
+                  key={ex.id}
+                  data-exercise-id={ex.id}
+                  draggable
+                  onDragStart={() => handleDragStart(ex.id)}
+                  onDragEnter={() => handleDragEnter(ex.id)}
+                  onDragEnd={handleDragEnd}
+                  onDragOver={(e) => e.preventDefault()}
+                  onTouchStart={(e) => handleTouchStart(ex.id, e)}
+                  onTouchMove={handleTouchMove}
+                  onTouchEnd={handleTouchEnd}
+                  className={`flex items-center gap-3 rounded-xl bg-card p-3 transition-all ${
+                    dragId === ex.id ? "opacity-50 scale-95" : ""
+                  }`}
+                >
+                  <div className="cursor-grab touch-none text-neutral-600 active:text-neutral-400">
+                    <GripVertical className="h-5 w-5" />
+                  </div>
                   <div className="flex-1">
                     <p className="text-sm font-medium">{ex.name}</p>
                     <p className="text-xs text-neutral-500">{ex.muscle_group} · {ex.sets}×{ex.reps}</p>
