@@ -1,12 +1,95 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
   BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer,
 } from "recharts";
 import { supabase } from "@/lib/supabase";
 import { USER_ID } from "@/lib/constants";
-import { TrendingUp, Activity, Zap, BarChart3 } from "lucide-react";
+import { TrendingUp, Activity, Zap, BarChart3, ChevronDown, Search, X } from "lucide-react";
 import type { TrainingLog, TrainingExercise, SetLog } from "@/types/database";
+
+function ExerciseDropdown({ exercises, selectedId, onSelect }: {
+  exercises: TrainingExercise[];
+  selectedId: string | null;
+  onSelect: (id: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const ref = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (open && inputRef.current) inputRef.current.focus();
+  }, [open]);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  const selected = exercises.find((e) => e.id === selectedId);
+  const filtered = exercises.filter((e) =>
+    e.name.toLowerCase().includes(search.toLowerCase()) ||
+    e.muscle_group.toLowerCase().includes(search.toLowerCase())
+  );
+
+  return (
+    <div ref={ref} className="relative mb-3">
+      <button
+        onClick={() => { setOpen(!open); setSearch(""); }}
+        className="flex w-full items-center justify-between rounded-xl bg-neutral-800 px-4 py-3 text-left"
+      >
+        <div>
+          <p className="text-sm font-medium">{selected ? selected.name : "Übung auswählen"}</p>
+          {selected && <p className="text-xs text-neutral-500">{selected.muscle_group}</p>}
+        </div>
+        <ChevronDown className={`h-4 w-4 text-neutral-500 transition-transform ${open ? "rotate-180" : ""}`} />
+      </button>
+
+      {open && (
+        <div className="absolute left-0 right-0 top-full z-50 mt-1 max-h-72 overflow-hidden rounded-xl bg-neutral-800 shadow-xl">
+          <div className="flex items-center gap-2 border-b border-neutral-700 px-3 py-2">
+            <Search className="h-4 w-4 text-neutral-500" />
+            <input
+              ref={inputRef}
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Übung suchen..."
+              className="flex-1 bg-transparent text-sm text-white outline-none placeholder:text-neutral-500"
+            />
+            {search && (
+              <button onClick={() => setSearch("")}>
+                <X className="h-3 w-3 text-neutral-500" />
+              </button>
+            )}
+          </div>
+          <div className="max-h-56 overflow-y-auto">
+            {filtered.length === 0 ? (
+              <p className="px-4 py-3 text-sm text-neutral-500">Keine Übungen gefunden</p>
+            ) : filtered.map((ex) => (
+              <button
+                key={ex.id}
+                onClick={() => { onSelect(ex.id); setOpen(false); setSearch(""); }}
+                className={`flex w-full items-center justify-between px-4 py-2.5 text-left transition-colors ${
+                  selectedId === ex.id ? "bg-neutral-700" : "hover:bg-neutral-700/50"
+                }`}
+              >
+                <div>
+                  <p className="text-sm">{ex.name}</p>
+                  <p className="text-xs text-neutral-500">{ex.muscle_group}</p>
+                </div>
+                {selectedId === ex.id && <div className="h-2 w-2 rounded-full bg-white" />}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 function ScoreRing({ value, maxValue, label, icon, color }: {
   value: number; maxValue: number; label: string; icon: React.ReactNode; color: string;
@@ -268,28 +351,20 @@ export function SportStatsPage() {
               icon={<BarChart3 className="h-3 w-3 text-neutral-500" />} />
           </div>
         ) : (
-          <div className="space-y-2">
+          <div>
             {exercises.length === 0 ? (
               <p className="py-4 text-center text-sm text-neutral-500">Keine Übungen</p>
-            ) : exercises.map((ex) => {
-              const exLogs = strengthData;
-              const latest = selectedExercise === ex.id && exLogs.length > 0
-                ? exLogs[exLogs.length - 1].estimated1RM : 0;
-              return (
-                <button key={ex.id} onClick={() => fetchExerciseStrength(ex.id)}
-                  className={`flex w-full items-center justify-between rounded-lg p-2.5 text-left transition-all ${
-                    selectedExercise === ex.id ? "bg-neutral-800" : ""
-                  }`}>
-                  <div>
-                    <p className="text-sm font-medium">{ex.name}</p>
-                    <p className="text-xs text-neutral-500">{ex.muscle_group}</p>
+            ) : (
+              <>
+                <ExerciseDropdown exercises={exercises} selectedId={selectedExercise} onSelect={fetchExerciseStrength} />
+                {selectedExercise && strengthData.length > 0 && (
+                  <div className="mt-2 flex items-baseline gap-2">
+                    <span className="text-2xl font-bold">{strengthData[strengthData.length - 1].estimated1RM}</span>
+                    <span className="text-sm text-neutral-500">kg 1RM</span>
                   </div>
-                  {selectedExercise === ex.id && latest > 0 && (
-                    <span className="text-sm font-bold">{latest}kg</span>
-                  )}
-                </button>
-              );
-            })}
+                )}
+              </>
+            )}
           </div>
         )}
       </div>
@@ -332,18 +407,7 @@ export function SportStatsPage() {
 
       {/* Strength chart */}
       <div className="rounded-xl bg-card p-4">
-        <div className="mb-3 flex flex-wrap gap-1">
-          {exercises.map((ex) => (
-            <button key={ex.id}
-              className={`rounded-lg px-2.5 py-1 text-xs font-medium transition-all ${
-                selectedExercise === ex.id ? "bg-white text-black" : "text-neutral-500"
-              }`}
-              onClick={() => fetchExerciseStrength(ex.id)}
-            >
-              {ex.name}
-            </button>
-          ))}
-        </div>
+        <ExerciseDropdown exercises={exercises} selectedId={selectedExercise} onSelect={fetchExerciseStrength} />
 
         {selectedEx && (
           <>
