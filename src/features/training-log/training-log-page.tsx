@@ -192,7 +192,7 @@ export function TrainingLogPage() {
 
         {/* Exercise Card - Bottom Sheet Style */}
         {currentEx && (
-          <div className="flex-1 rounded-t-3xl bg-neutral-900 px-4 pb-4 pt-4 space-y-3 overflow-y-auto mb-14">
+          <div className="min-h-0 flex-1 rounded-t-3xl bg-neutral-900 px-4 pb-16 pt-4 space-y-3 overflow-y-auto">
             <div className="flex justify-center">
               <div className="h-1 w-10 rounded-full bg-neutral-700" />
             </div>
