@@ -156,8 +156,7 @@ export function DashboardPage() {
                 ) : (
                   <Circle className="h-5 w-5 shrink-0 text-neutral-600" />
                 )}
-                <span className={cn("text-sm", r.done && "line-through")}>{r.name}</span>
-                <span className="ml-auto text-[10px] text-neutral-600">{r.area === "sport" ? "Sport" : "Routine"}</span>
+                <span className={cn("text-sm flex-1", r.done && "line-through")}>{r.name}</span>
               </button>
             ))}
           </div>

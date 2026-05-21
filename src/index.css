@@ -1,32 +1,32 @@
 @import "tailwindcss";
 
 @theme {
-  /* Dark-first premium fitness theme */
-  --color-background: #0a0a0a;
-  --color-foreground: #f5f5f5;
-  --color-card: #161616;
-  --color-card-foreground: #f5f5f5;
-  --color-popover: #1a1a1a;
-  --color-popover-foreground: #f5f5f5;
-  --color-primary: #ffffff;
-  --color-primary-foreground: #0a0a0a;
-  --color-secondary: #1e1e1e;
-  --color-secondary-foreground: #e5e5e5;
-  --color-muted: #1a1a1a;
-  --color-muted-foreground: #737373;
-  --color-accent: #262626;
-  --color-accent-foreground: #f5f5f5;
-  --color-destructive: #dc2626;
-  --color-destructive-foreground: #ffffff;
-  --color-border: #262626;
-  --color-input: #262626;
-  --color-ring: #ffffff;
+  /* Dark-first premium fitness theme — warm-tinted neutrals */
+  --color-background: oklch(0.145 0.006 70);
+  --color-foreground: oklch(0.96 0.005 70);
+  --color-card: oklch(0.195 0.006 70);
+  --color-card-foreground: oklch(0.96 0.005 70);
+  --color-popover: oklch(0.21 0.006 70);
+  --color-popover-foreground: oklch(0.96 0.005 70);
+  --color-primary: oklch(0.98 0.003 70);
+  --color-primary-foreground: oklch(0.145 0.006 70);
+  --color-secondary: oklch(0.22 0.006 70);
+  --color-secondary-foreground: oklch(0.9 0.005 70);
+  --color-muted: oklch(0.21 0.006 70);
+  --color-muted-foreground: oklch(0.55 0.008 70);
+  --color-accent: oklch(0.26 0.006 70);
+  --color-accent-foreground: oklch(0.96 0.005 70);
+  --color-destructive: oklch(0.55 0.22 27);
+  --color-destructive-foreground: oklch(0.98 0.003 70);
+  --color-border: oklch(0.26 0.006 70);
+  --color-input: oklch(0.26 0.006 70);
+  --color-ring: oklch(0.98 0.003 70);
   --radius: 0.75rem;
 
-  --color-success: #22c55e;
-  --color-warning: #f59e0b;
-  --color-info: #3b82f6;
-  --color-highlight: #22c55e;
+  --color-success: oklch(0.72 0.19 145);
+  --color-warning: oklch(0.75 0.18 75);
+  --color-info: oklch(0.62 0.17 260);
+  --color-highlight: oklch(0.72 0.19 145);
 }
 
 @layer base {
@@ -38,6 +38,8 @@
     font-family: -apple-system, "SF Pro Display", system-ui, sans-serif;
     margin: 0;
     -webkit-tap-highlight-color: transparent;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 
   /* Scrollbar styling */
@@ -48,7 +50,7 @@
     background: transparent;
   }
   ::-webkit-scrollbar-thumb {
-    background: #333;
+    background: oklch(0.32 0.006 70);
     border-radius: 2px;
   }
 }

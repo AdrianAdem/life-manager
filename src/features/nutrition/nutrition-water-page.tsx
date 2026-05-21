@@ -535,7 +535,7 @@ export function NutritionWaterPage() {
         <div className="space-y-3">
           {/* Essensprotokoll header */}
           <div className="flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-neutral-400 uppercase tracking-wider">Essensprotokoll</h2>
+            <h2 className="text-sm font-semibold text-neutral-400">Essensprotokoll</h2>
             <span className="text-xs text-neutral-600">
               {(() => { const m = mealConfig.find((m) => m.type === activeTab)!; const cal = mealTotals(m.type); const goal = Math.round(goals.calories * m.pct); const r = goal - cal; return r > 0 ? `${r} kcal übrig` : `${Math.abs(r)} drüber`; })()}
             </span>

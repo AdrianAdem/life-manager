@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { CheckSquare, ClipboardList, Dumbbell, BarChart3, Scale } from "lucide-react";
+import { CheckSquare, ClipboardList, Dumbbell, BarChart3, Scale, FileText } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const sections = [
@@ -8,6 +8,7 @@ const sections = [
   { path: "/sport/loggen", label: "Training loggen", icon: Dumbbell, color: "text-orange-500" },
   { path: "/sport/gewicht", label: "Gewicht", icon: Scale, color: "text-purple-400" },
   { path: "/sport/statistiken", label: "Statistiken", icon: BarChart3, color: "text-cyan-400" },
+  { path: "/sport/berichte", label: "Wochenberichte", icon: FileText, color: "text-pink-400" },
 ] as const;
 
 export function SportPage() {
