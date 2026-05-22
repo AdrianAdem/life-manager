@@ -138,6 +138,11 @@ export function WorkoutProvider({ children }: { children: ReactNode }) {
     );
     setExercises(exercisesWithPrev);
     setCurrentExIdx(0);
+    if (exercisesWithPrev[0]?.rest_seconds) {
+      setRestDuration(exercisesWithPrev[0].rest_seconds);
+    } else {
+      setRestDuration(DEFAULT_REST);
+    }
     setDayLabel(day);
     setWorkoutActive(true);
     workoutStart.current = new Date();
@@ -213,13 +218,21 @@ export function WorkoutProvider({ children }: { children: ReactNode }) {
       saveExercise(currentExIdx);
     }
     if (currentExIdx < exercises.length - 1) {
-      setCurrentExIdx(currentExIdx + 1);
+      const nextIdx = currentExIdx + 1;
+      setCurrentExIdx(nextIdx);
+      const nextEx = exercises[nextIdx];
+      if (nextEx?.rest_seconds) setRestDuration(nextEx.rest_seconds);
     }
   }, [exercises, currentExIdx, saveExercise]);
 
   const goToPrevExercise = useCallback(() => {
-    if (currentExIdx > 0) setCurrentExIdx(currentExIdx - 1);
-  }, [currentExIdx]);
+    if (currentExIdx > 0) {
+      const prevIdx = currentExIdx - 1;
+      setCurrentExIdx(prevIdx);
+      const prevEx = exercises[prevIdx];
+      if (prevEx?.rest_seconds) setRestDuration(prevEx.rest_seconds);
+    }
+  }, [currentExIdx, exercises]);
 
   const finishWorkout = useCallback(async () => {
     for (let i = 0; i < exercises.length; i++) {
