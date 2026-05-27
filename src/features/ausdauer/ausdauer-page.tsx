@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { RefreshCw, Activity, Clock, MapPin, Flame, Mountain, Gauge, Heart, Link2 } from "lucide-react";
+import { RefreshCw, Activity, Clock, MapPin, Flame, Mountain, Gauge, Heart, Link2, Play, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
@@ -190,12 +190,20 @@ function StatPill({ icon, value }: { icon: React.ReactNode; value: string }) {
   );
 }
 
+const ACTIVITY_TYPES = [
+  { key: "run", label: "Laufen", icon: "\u{1F3C3}" },
+  { key: "ride", label: "Radfahren", icon: "\u{1F6B4}" },
+  { key: "walk", label: "Gehen", icon: "\u{1F6B6}" },
+  { key: "hike", label: "Wandern", icon: "\u{1F97E}" },
+];
+
 export function AusdauerPage() {
   const navigate = useNavigate();
   const [activities, setActivities] = useState<CardioActivity[]>([]);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [stravaConnected, setStravaConnected] = useState(false);
+  const [showStartMenu, setShowStartMenu] = useState(false);
 
   const fetchData = useCallback(async () => {
     const [acts, status] = await Promise.all([
@@ -303,6 +311,40 @@ export function AusdauerPage() {
               onClick={() => navigate(`/ausdauer/${a.id}`)}
             />
           ))}
+        </div>
+      )}
+
+      {/* FAB: Start Training */}
+      <button
+        onClick={() => setShowStartMenu(true)}
+        className="fixed bottom-20 right-4 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-[#FC4C02] shadow-lg shadow-[#FC4C02]/30 active:scale-90 transition-transform"
+      >
+        <Play className="h-6 w-6 text-white ml-0.5" />
+      </button>
+
+      {/* Activity type picker overlay */}
+      {showStartMenu && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm" onClick={() => setShowStartMenu(false)}>
+          <div className="w-full max-w-md rounded-t-2xl bg-neutral-900 p-5 pb-8 safe-area-bottom" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-base font-bold">Training starten</h3>
+              <button onClick={() => setShowStartMenu(false)} className="rounded-lg bg-neutral-800 p-1.5 active:scale-95">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              {ACTIVITY_TYPES.map((t) => (
+                <button
+                  key={t.key}
+                  onClick={() => navigate(`/ausdauer/training?type=${t.key}`)}
+                  className="flex items-center gap-3 rounded-xl bg-neutral-800 p-4 active:scale-[0.97] transition-transform"
+                >
+                  <span className="text-2xl">{t.icon}</span>
+                  <span className="text-sm font-semibold">{t.label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
       )}
     </div>

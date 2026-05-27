@@ -71,6 +71,31 @@ export async function getActivityStreams(activityId: string, keys?: string) {
   return res.json() as Promise<Record<string, unknown[]>>;
 }
 
+export async function saveManualActivity(activity: {
+  activity_type: string;
+  name: string;
+  start_date: string;
+  elapsed_time_sec: number;
+  moving_time_sec: number;
+  distance_m: number;
+  elevation_gain_m: number;
+  avg_pace_sec_per_km: number | null;
+  avg_speed_ms: number | null;
+  calories: number | null;
+  raw_data: Record<string, unknown>;
+}) {
+  const { data, error } = await supabase.from("cardio_activities").insert({
+    user_id: USER_ID,
+    source: "manual",
+    external_id: null,
+    ...activity,
+    avg_heartrate: null,
+    max_heartrate: null,
+  }).select().single();
+  if (error) throw error;
+  return data;
+}
+
 export async function getCardioActivitiesForDateRange(startDate: string, endDate: string) {
   const { data } = await supabase
     .from("cardio_activities")
