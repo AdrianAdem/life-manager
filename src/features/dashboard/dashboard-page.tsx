@@ -8,6 +8,7 @@ import { supabase } from "@/lib/supabase";
 import { USER_ID } from "@/lib/constants";
 import { todayString, cn, isRoutineActiveToday } from "@/lib/utils";
 import type { DailyTodo, NutritionLog, WaterLog, WeightLog, Routine } from "@/types/database";
+import { GarminHealthCard } from "./garmin-health-card";
 
 export function DashboardPage() {
   const navigate = useNavigate();
@@ -218,6 +219,9 @@ export function DashboardPage() {
           </div>
         )}
       </div>
+
+      {/* Garmin Health — auto-hides when not connected */}
+      <GarminHealthCard />
 
       {/* Quick actions */}
       <div>

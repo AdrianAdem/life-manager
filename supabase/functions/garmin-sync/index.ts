@@ -94,8 +94,11 @@ async function getValidToken(): Promise<string> {
 
 // ── Ticket Exchange (browser does SSO login, sends ticket here) ──
 
-async function handleExchangeTicket(ticket: string) {
+async function handleExchangeTicket(ticket: string, serviceUrl?: string) {
   if (!ticket) throw new Error("No service ticket provided");
+
+  // service_url must match what was passed to SSO embed
+  const svcUrl = serviceUrl ?? `${CONNECT_BASE}/modern`;
 
   const diRes = await fetch(DI_AUTH_URL, {
     method: "POST",
@@ -107,7 +110,7 @@ async function handleExchangeTicket(ticket: string) {
       grant_type: "urn:ietf:params:oauth:grant-type:cas-ticket",
       client_id: DI_CLIENT_ID,
       service_ticket: ticket,
-      service_url: `${CONNECT_BASE}/modern`,
+      service_url: svcUrl,
     }),
   });
 
@@ -327,7 +330,7 @@ serve(async (req) => {
     let result;
     switch (path) {
       case "exchange-ticket":
-        result = await handleExchangeTicket(body.ticket);
+        result = await handleExchangeTicket(body.ticket, body.service_url);
         break;
       case "sync":
         result = await handleSync(body.date);
