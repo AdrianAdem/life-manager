@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { Plus, Check, Trash2, ChevronDown, ChevronUp, X } from "lucide-react";
+import { Plus, Check, Trash2, ChevronDown, ChevronUp, X, Pencil } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { USER_ID } from "@/lib/constants";
 import { todayString, isRoutineActiveToday } from "@/lib/utils";
@@ -41,11 +41,12 @@ export function SportTodosPage() {
   const [activeTab, setActiveTab] = useState<"routinen" | "todos">("routinen");
   const [expandedRoutine, setExpandedRoutine] = useState<string | null>(null);
 
-  // Add routine state
+  // Add/edit routine state. editingRoutineId set => the form edits that routine.
   const [showAddRoutine, setShowAddRoutine] = useState(false);
+  const [editingRoutineId, setEditingRoutineId] = useState<string | null>(null);
   const [newRoutineName, setNewRoutineName] = useState("");
   const [newRoutineCategory, setNewRoutineCategory] = useState<RoutineCategory>("mobility");
-  const [newRoutineItems, setNewRoutineItems] = useState<{ name: string; sets?: number; reps?: number; duration_sec?: number }[]>([
+  const [newRoutineItems, setNewRoutineItems] = useState<{ id?: string; name: string; sets?: number; reps?: number; duration_sec?: number }[]>([
     { name: "" },
   ]);
   const [newRoutineWeekdays, setNewRoutineWeekdays] = useState<number[]>([]);
@@ -137,19 +138,77 @@ export function SportTodosPage() {
     }, { onConflict: "routine_id,user_id,date" });
   };
 
-  const createRoutine = async () => {
+  const resetRoutineForm = () => {
+    setNewRoutineName("");
+    setNewRoutineCategory("mobility");
+    setNewRoutineItems([{ name: "" }]);
+    setNewRoutineWeekdays([]);
+    setNewRoutineStartDate("");
+    setNewRoutineEndDate("");
+    setShowAddRoutine(false);
+    setEditingRoutineId(null);
+  };
+
+  const startEditRoutine = (routine: RoutineWithItems) => {
+    setEditingRoutineId(routine.id);
+    setNewRoutineName(routine.name);
+    setNewRoutineCategory(routine.category);
+    setNewRoutineWeekdays(routine.weekdays ?? []);
+    setNewRoutineStartDate(routine.start_date ?? "");
+    setNewRoutineEndDate(routine.end_date ?? "");
+    setNewRoutineItems(
+      routine.items.length > 0
+        ? routine.items.map((i) => ({
+            id: i.id, name: i.name,
+            sets: i.sets ?? undefined, reps: i.reps ?? undefined, duration_sec: i.duration_sec ?? undefined,
+          }))
+        : [{ name: "" }],
+    );
+    setShowAddRoutine(true);
+  };
+
+  const saveRoutine = async () => {
     if (!newRoutineName.trim()) return;
     const validItems = newRoutineItems.filter((i) => i.name.trim());
     if (validItems.length === 0) return;
 
+    const routineFields = {
+      name: newRoutineName.trim(), category: newRoutineCategory,
+      weekdays: newRoutineWeekdays.length > 0 ? newRoutineWeekdays : null,
+      start_date: newRoutineStartDate || null,
+      end_date: newRoutineEndDate || null,
+    };
+
+    if (editingRoutineId) {
+      await supabase.from("routines").update(routineFields).eq("id", editingRoutineId);
+
+      // Sync items: update kept, insert new, delete removed. Keeping ids stable
+      // preserves today's completed_items references in routine_logs.
+      const keptIds = validItems.filter((i) => i.id).map((i) => i.id as string);
+      const existing = routines.find((r) => r.id === editingRoutineId)?.items ?? [];
+      const removed = existing.filter((i) => !keptIds.includes(i.id)).map((i) => i.id);
+      if (removed.length) await supabase.from("routine_items").delete().in("id", removed);
+
+      await Promise.all(
+        validItems.map((item, idx) => {
+          const row = {
+            routine_id: editingRoutineId, name: item.name.trim(),
+            sets: item.sets || null, reps: item.reps || null, duration_sec: item.duration_sec || null,
+            order_index: idx,
+          };
+          return item.id
+            ? supabase.from("routine_items").update(row).eq("id", item.id)
+            : supabase.from("routine_items").insert(row);
+        }),
+      );
+      resetRoutineForm();
+      fetchData();
+      return;
+    }
+
     const { data: routine } = await supabase
       .from("routines")
-      .insert({
-        user_id: USER_ID, name: newRoutineName.trim(), category: newRoutineCategory, area: "sport",
-        weekdays: newRoutineWeekdays.length > 0 ? newRoutineWeekdays : null,
-        start_date: newRoutineStartDate || null,
-        end_date: newRoutineEndDate || null,
-      })
+      .insert({ user_id: USER_ID, area: "sport", ...routineFields })
       .select().single();
 
     if (routine) {
@@ -163,13 +222,7 @@ export function SportTodosPage() {
           order_index: idx,
         }))
       );
-      setNewRoutineName("");
-      setNewRoutineCategory("mobility");
-      setNewRoutineItems([{ name: "" }]);
-      setNewRoutineWeekdays([]);
-      setNewRoutineStartDate("");
-      setNewRoutineEndDate("");
-      setShowAddRoutine(false);
+      resetRoutineForm();
       fetchData();
     }
   };
@@ -322,6 +375,10 @@ export function SportTodosPage() {
                     <p className="pt-1 text-center text-[10px] text-neutral-600">
                       Nach links wischen zum Löschen
                     </p>
+                    <button onClick={() => startEditRoutine(routine)}
+                      className="flex w-full items-center justify-center gap-1.5 rounded-lg bg-neutral-800 py-2 text-xs font-medium text-neutral-300 active:scale-[0.98]">
+                      <Pencil className="h-3.5 w-3.5" /> Routine bearbeiten
+                    </button>
                   </div>
                 )}
               </SwipeRow>
@@ -332,8 +389,8 @@ export function SportTodosPage() {
           {showAddRoutine ? (
             <div className="rounded-xl bg-card p-4 space-y-3">
               <div className="flex items-center justify-between">
-                <p className="text-sm font-medium">Neue Routine</p>
-                <button onClick={() => setShowAddRoutine(false)}><X className="h-4 w-4 text-neutral-500" /></button>
+                <p className="text-sm font-medium">{editingRoutineId ? "Routine bearbeiten" : "Neue Routine"}</p>
+                <button onClick={resetRoutineForm}><X className="h-4 w-4 text-neutral-500" /></button>
               </div>
               <Input value={newRoutineName} onChange={(e) => setNewRoutineName(e.target.value)}
                 placeholder="Name (z.B. Scapula Routine)" className="bg-neutral-800 border-none" />
@@ -408,13 +465,13 @@ export function SportTodosPage() {
                 className="flex items-center gap-1 text-xs text-neutral-400">
                 <Plus className="h-3 w-3" /> Schritt hinzufügen
               </button>
-              <button onClick={createRoutine} disabled={!newRoutineName.trim()}
+              <button onClick={saveRoutine} disabled={!newRoutineName.trim()}
                 className="w-full rounded-xl bg-white py-2.5 text-sm font-semibold text-black disabled:opacity-30 active:scale-[0.98]">
-                Routine erstellen
+                {editingRoutineId ? "Speichern" : "Routine erstellen"}
               </button>
             </div>
           ) : (
-            <button onClick={() => setShowAddRoutine(true)}
+            <button onClick={() => { setEditingRoutineId(null); setShowAddRoutine(true); }}
               className="flex w-full items-center justify-center gap-2 rounded-xl bg-card p-3 text-sm text-neutral-400 active:scale-[0.98]">
               <Plus className="h-4 w-4" /> Routine hinzufügen
             </button>
