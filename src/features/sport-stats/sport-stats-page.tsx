@@ -300,14 +300,15 @@ export function SportStatsPage() {
     : 0;
 
   // Calendar rendering
+  type CalDay = { date: Date; hasTraining: boolean } | null;
   const renderCalendar = () => {
-    const weeks: { date: Date; hasTraining: boolean }[][] = [];
+    const weeks: CalDay[][] = [];
     const now = new Date();
     const start = new Date(now);
     start.setDate(now.getDate() - 84); // 12 weeks
     start.setDate(start.getDate() - start.getDay() + 1); // Monday
 
-    let currentWeek: { date: Date; hasTraining: boolean }[] = [];
+    let currentWeek: CalDay[] = [];
     for (let d = new Date(start); d <= now; d.setDate(d.getDate() + 1)) {
       const dateStr = d.toISOString().split("T")[0];
       currentWeek.push({ date: new Date(d), hasTraining: trainingDays.has(dateStr) });
@@ -316,7 +317,12 @@ export function SportStatsPage() {
         currentWeek = [];
       }
     }
-    if (currentWeek.length > 0) weeks.push(currentWeek);
+    // Pad the trailing partial week so its cells stay aligned under the 7-column
+    // grid (flex-1 would otherwise spread fewer cells across the full width).
+    if (currentWeek.length > 0) {
+      while (currentWeek.length < 7) currentWeek.push(null);
+      weeks.push(currentWeek);
+    }
 
     return weeks;
   };
@@ -475,6 +481,7 @@ export function SportStatsPage() {
           {renderCalendar().map((week, wi) => (
             <div key={wi} className="flex gap-1">
               {week.map((day, di) => {
+                if (!day) return <div key={di} className="flex-1" />;
                 const isToday = day.date.toISOString().split("T")[0] === new Date().toISOString().split("T")[0];
                 return (
                   <div key={di} className="flex flex-1 items-center justify-center">
