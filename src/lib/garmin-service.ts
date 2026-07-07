@@ -1,24 +1,13 @@
 // Garmin Connect service — reads health data stored by the local sync script.
 // Login + fetch happen in scripts/garmin-sync.mjs (Garmin blocks datacenter IPs,
-// so it must run from a residential connection, not a Supabase edge function).
+// so it must run from a residential connection). The app reads the table
+// directly via an RLS select policy; the old garmin-sync edge function was
+// retired because its public /login endpoint accepted arbitrary credentials.
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
-const GARMIN_API = `${SUPABASE_URL}/functions/v1/garmin-sync`;
+import { supabase } from "./supabase";
+import { USER_ID } from "./constants";
 
-async function garminFetch(endpoint: string, body: Record<string, unknown> = {}) {
-  const res = await fetch(`${GARMIN_API}/${endpoint}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: res.statusText }));
-    throw new Error(err.error ?? `Garmin API error: ${res.status}`);
-  }
-  return res.json();
-}
-
-// Typed health data matching edge function output
+// Typed health data matching the sync script's output
 export interface GarminDailyStats {
   steps: number | null;
   distance_m: number | null;
@@ -92,5 +81,13 @@ export interface GarminHealthEntry {
 }
 
 export async function getGarminData(startDate: string, endDate: string): Promise<GarminHealthEntry[]> {
-  return garminFetch("data", { start_date: startDate, end_date: endDate });
+  const { data, error } = await supabase
+    .from("garmin_health_data")
+    .select("date, data")
+    .eq("user_id", USER_ID)
+    .gte("date", startDate)
+    .lte("date", endDate)
+    .order("date", { ascending: false });
+  if (error) throw new Error(error.message);
+  return (data ?? []) as GarminHealthEntry[];
 }

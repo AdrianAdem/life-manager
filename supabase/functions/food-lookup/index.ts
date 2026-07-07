@@ -130,6 +130,9 @@ async function handleFood(foodId: string) {
 async function handleAI(text: string) {
   const apiKey = Deno.env.get("ANTHROPIC_API_KEY");
   if (!apiKey) throw new Error("ANTHROPIC_API_KEY not set");
+  // Function is public (no auth) — cap input so it can't be abused as a
+  // free LLM proxy with arbitrarily large prompts.
+  if (text.length > 500) throw new Error("Text zu lang (max 500 Zeichen)");
 
   const res = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
@@ -139,7 +142,7 @@ async function handleAI(text: string) {
       "anthropic-version": "2023-06-01",
     },
     body: JSON.stringify({
-      model: "claude-haiku-4-20250414",
+      model: "claude-haiku-4-5-20251001",
       max_tokens: 1024,
       messages: [{
         role: "user",
@@ -172,13 +175,21 @@ serve(async (req) => {
     const url = new URL(req.url);
     const path = url.pathname.split("/").pop();
     const body = await req.json();
+    // Public function — reject oversized identifiers before they hit upstream APIs.
+    for (const key of ["barcode", "query", "food_id"] as const) {
+      if (typeof body[key] === "string" && body[key].length > 200) {
+        return new Response(JSON.stringify({ error: `${key} zu lang` }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
 
     let result;
     switch (path) {
       case "barcode": result = await handleBarcode(body.barcode); break;
       case "search": result = await handleSearch(body.query, body.page ?? 0); break;
       case "food": result = await handleFood(body.food_id); break;
-      case "ai": result = await handleAI(body.text); break;
+      case "ai": result = await handleAI(String(body.text ?? "")); break;
       default:
         return new Response(JSON.stringify({ error: "Unknown endpoint" }), {
           status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
