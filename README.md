@@ -76,23 +76,37 @@ Two design decisions worth calling out:
 
 ## Screenshots
 
-| Dashboard | Routines | Micronutrients | Analytics |
+| Dashboard | Training analytics | Cardio | Micronutrients |
 | --- | --- | --- | --- |
-| <img src="docs/screenshots/dashboard.png" width="200" alt="Daily overview with calorie, water, training and weight tiles above the routine list"> | <img src="docs/screenshots/training.png" width="200" alt="Routine list with per-step completion progress"> | <img src="docs/screenshots/nutrition.png" width="200" alt="Micronutrient intake against recommended daily allowances"> | <img src="docs/screenshots/stats.png" width="200" alt="Training scores, volume chart and per-exercise 1RM trend"> |
+| <img src="docs/screenshots/dashboard.png" width="200" alt="Daily overview with calorie, water, training and weight tiles above the routine list"> | <img src="docs/screenshots/stats.png" width="200" alt="Training scores, weekly volume chart and per-exercise 1RM trend"> | <img src="docs/screenshots/cardio.png" width="200" alt="Activity feed with a GPS route map and pace, time and elevation stats"> | <img src="docs/screenshots/nutrition.png" width="200" alt="Micronutrient intake against recommended daily allowances"> |
+
+Taken from demo mode, so the data shown is generated, not personal.
 
 ## Setup
 
-### Prerequisites
+### Try it without a backend
 
-- Node.js 20+
-- A Supabase project
-
-### Installation
+Demo mode runs the whole app against in-memory fixtures — no Supabase project,
+no API keys, no `.env`:
 
 ```bash
 git clone https://github.com/AdrianAdem/life-manager.git
 cd life-manager
 npm install
+npm run demo           # http://localhost:5173/life-manager/
+```
+
+It ships twelve weeks of training logs, a week of meals, five runs with GPS
+tracks, and two weeks of Garmin biometrics, all generated relative to today.
+Writes work and persist for the session. The GPS tracks are synthetic loops
+through a public park, not recorded routes.
+
+### Full installation
+
+- Node.js 20+
+- A Supabase project
+
+```bash
 cp .env.example .env   # then fill in the values below
 npm run dev            # http://localhost:5173
 ```
@@ -125,6 +139,7 @@ Pushing to `main` triggers `.github/workflows/deploy.yml`, which builds and publ
 
 ```bash
 npm run dev              # dev server with HMR
+npm run demo             # dev server with in-memory fixtures, no backend needed
 npm run build            # typecheck + production build
 npm run preview          # serve the production build locally
 npm run lint             # ESLint

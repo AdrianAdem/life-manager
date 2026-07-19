@@ -1,10 +1,21 @@
 // Strava API service — all calls go through Edge Functions
 import { supabase } from "./supabase";
 import { USER_ID } from "./constants";
+import { IS_DEMO } from "./demo-client";
 
 const FUNCTIONS_URL = import.meta.env.VITE_SUPABASE_URL + "/functions/v1";
 
 export async function getStravaStatus() {
+  // Demo mode has no edge functions; the fixture activities are already loaded,
+  // so report a connected account rather than an error state.
+  if (IS_DEMO) {
+    return {
+      connected: true,
+      athlete_name: "Demo Athlete",
+      athlete_id: 0,
+      last_updated: new Date().toISOString(),
+    };
+  }
   const res = await fetch(`${FUNCTIONS_URL}/strava-auth/status?user_id=${USER_ID}`);
   return res.json() as Promise<{
     connected: boolean;
@@ -30,6 +41,7 @@ export async function disconnectStrava() {
 }
 
 export async function syncStravaActivities(page = 1, perPage = 30) {
+  if (IS_DEMO) return { imported: 0, skipped: 5, total_fetched: 5, has_more: false };
   const res = await fetch(`${FUNCTIONS_URL}/strava-sync/activities`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },

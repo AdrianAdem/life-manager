@@ -3,13 +3,25 @@ import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import path from "path";
 
+const isDemo = process.env.VITE_DEMO === "1";
+
 export default defineConfig({
   base: "/life-manager/",
   plugins: [react(), tailwindcss()],
   resolve: {
-    alias: {
-      "@": path.resolve(__dirname, "./src"),
-    },
+    alias: [
+      { find: "@", replacement: path.resolve(__dirname, "./src") },
+      // Outside demo builds, resolve the demo client to an inert stub so the
+      // fixture data is never bundled for real users.
+      ...(isDemo
+        ? []
+        : [
+            {
+              find: /^\.\/demo-client$/,
+              replacement: path.resolve(__dirname, "./src/lib/demo-client.noop.ts"),
+            },
+          ]),
+    ],
   },
   server: {
     host: true,

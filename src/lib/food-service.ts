@@ -3,6 +3,8 @@
 // Layer 2: Text search → FatSecret
 // Layer 3: AI freitext → Claude Haiku
 
+import { IS_DEMO, demoFoodResponse } from "./demo-client";
+
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
 const FOOD_API = `${SUPABASE_URL}/functions/v1/food-lookup`;
 
@@ -49,6 +51,10 @@ export interface AIFoodItem {
 }
 
 async function foodFetch(endpoint: string, body: Record<string, unknown>) {
+  // Demo mode has no edge functions behind it; the fixture module answers
+  // lookups instead. It is aliased away entirely in normal builds.
+  if (IS_DEMO) return demoFoodResponse(endpoint, body);
+
   const res = await fetch(`${FOOD_API}/${endpoint}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },

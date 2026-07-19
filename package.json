@@ -12,7 +12,9 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "demo": "VITE_DEMO=1 vite",
+    "demo:build": "VITE_DEMO=1 vite build"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.15",
