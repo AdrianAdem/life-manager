@@ -71,7 +71,9 @@ function encodePolyline(points: [number, number][]): string {
     for (const d of [dLat, dLng]) {
       let v = d < 0 ? ~(d << 1) : d << 1;
       while (v >= 0x20) {
-        encoded += String.fromCharCode((v & 0x1f) | (0x20 + 63));
+        // The continuation bit must be OR-ed in before the +63 offset:
+        // `(v & 0x1f) | (0x20 + 63)` collapses every chunk to '_'.
+        encoded += String.fromCharCode(((v & 0x1f) | 0x20) + 63);
         v >>= 5;
       }
       encoded += String.fromCharCode(v + 63);
