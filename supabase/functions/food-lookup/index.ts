@@ -18,8 +18,10 @@ let tokenCache: { token: string; expires: number } | null = null;
 async function getFatSecretToken(): Promise<string> {
   if (tokenCache && Date.now() < tokenCache.expires) return tokenCache.token;
 
-  const clientId = Deno.env.get("FATSECRET_CLIENT_ID") ?? Deno.env.get("FATSECRET_CONSUMER_KEY") ?? "";
-  const clientSecret = Deno.env.get("FATSECRET_CLIENT_SECRET") ?? Deno.env.get("FATSECRET_CONSUMER_SECRET") ?? "";
+  const clientId =
+    Deno.env.get("FATSECRET_CLIENT_ID") ?? Deno.env.get("FATSECRET_CONSUMER_KEY") ?? "";
+  const clientSecret =
+    Deno.env.get("FATSECRET_CLIENT_SECRET") ?? Deno.env.get("FATSECRET_CONSUMER_SECRET") ?? "";
 
   const res = await fetch("https://oauth.fatsecret.com/connect/token", {
     method: "POST",
@@ -44,7 +46,8 @@ async function fatSecretAPI(method: string, params: Record<string, string> = {})
   });
   if (!res.ok) throw new Error(`FatSecret API error: ${res.status}`);
   const data = await res.json();
-  if (data?.error) throw new Error(`FatSecret: ${data.error.message ?? JSON.stringify(data.error)}`);
+  if (data?.error)
+    throw new Error(`FatSecret: ${data.error.message ?? JSON.stringify(data.error)}`);
   return data;
 }
 
@@ -148,14 +151,16 @@ async function handleAI(text: string) {
     body: JSON.stringify({
       model: "claude-haiku-4-5-20251001",
       max_tokens: 1024,
-      messages: [{
-        role: "user",
-        content: `Parse this food description into individual items with nutritional estimates per item.
+      messages: [
+        {
+          role: "user",
+          content: `Parse this food description into individual items with nutritional estimates per item.
 Return ONLY a JSON array, no markdown, no explanation.
 Each item: { "name": string, "amount_g": number, "calories": number, "protein_g": number, "carbs_g": number, "fat_g": number }
 
 Food description: "${text}"`,
-      }],
+        },
+      ],
     }),
   });
 
@@ -183,20 +188,30 @@ serve(async (req) => {
     for (const key of ["barcode", "query", "food_id"] as const) {
       if (typeof body[key] === "string" && body[key].length > 200) {
         return new Response(JSON.stringify({ error: `${key} zu lang` }), {
-          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
     }
 
     let result;
     switch (path) {
-      case "barcode": result = await handleBarcode(body.barcode); break;
-      case "search": result = await handleSearch(body.query, body.page ?? 0); break;
-      case "food": result = await handleFood(body.food_id); break;
-      case "ai": result = await handleAI(String(body.text ?? "")); break;
+      case "barcode":
+        result = await handleBarcode(body.barcode);
+        break;
+      case "search":
+        result = await handleSearch(body.query, body.page ?? 0);
+        break;
+      case "food":
+        result = await handleFood(body.food_id);
+        break;
+      case "ai":
+        result = await handleAI(String(body.text ?? ""));
+        break;
       default:
         return new Response(JSON.stringify({ error: "Unknown endpoint" }), {
-          status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 404,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
     }
 
@@ -205,7 +220,8 @@ serve(async (req) => {
     });
   } catch (err) {
     return new Response(JSON.stringify({ error: (err as Error).message }), {
-      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 });

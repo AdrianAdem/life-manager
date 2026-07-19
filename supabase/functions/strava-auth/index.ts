@@ -11,10 +11,7 @@ const corsHeaders = {
 };
 
 function getSupabaseAdmin() {
-  return createClient(
-    Deno.env.get("SUPABASE_URL")!,
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-  );
+  return createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 }
 
 function getStravaConfig() {
@@ -82,23 +79,29 @@ async function handleCallback(url: URL): Promise<Response> {
     const err = await tokenRes.text();
     console.error("Strava token exchange failed:", err);
     const appUrl = Deno.env.get("APP_URL") ?? "https://adrianadem.github.io/life-manager";
-    return Response.redirect(`${appUrl}/einstellungen?strava=error&reason=token_exchange_failed`, 302);
+    return Response.redirect(
+      `${appUrl}/einstellungen?strava=error&reason=token_exchange_failed`,
+      302,
+    );
   }
 
   const tokenData = await tokenRes.json();
   const supabase = getSupabaseAdmin();
 
   // Upsert token
-  const { error: dbError } = await supabase.from("strava_tokens").upsert({
-    user_id: userId,
-    athlete_id: tokenData.athlete.id,
-    athlete_name: `${tokenData.athlete.firstname} ${tokenData.athlete.lastname}`.trim(),
-    access_token: tokenData.access_token,
-    refresh_token: tokenData.refresh_token,
-    expires_at: tokenData.expires_at,
-    scope: "read,activity:read_all",
-    updated_at: new Date().toISOString(),
-  }, { onConflict: "user_id" });
+  const { error: dbError } = await supabase.from("strava_tokens").upsert(
+    {
+      user_id: userId,
+      athlete_id: tokenData.athlete.id,
+      athlete_name: `${tokenData.athlete.firstname} ${tokenData.athlete.lastname}`.trim(),
+      access_token: tokenData.access_token,
+      refresh_token: tokenData.refresh_token,
+      expires_at: tokenData.expires_at,
+      scope: "read,activity:read_all",
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "user_id" },
+  );
 
   if (dbError) {
     console.error("DB upsert error:", dbError);
@@ -127,9 +130,12 @@ async function handleRefresh(body: { user_id: string }): Promise<Response> {
 
   // Check if still valid (with 5 min buffer)
   if (token.expires_at > Math.floor(Date.now() / 1000) + 300) {
-    return new Response(JSON.stringify({ access_token: token.access_token, athlete_name: token.athlete_name }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return new Response(
+      JSON.stringify({ access_token: token.access_token, athlete_name: token.athlete_name }),
+      {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
+    );
   }
 
   // Refresh
@@ -154,19 +160,25 @@ async function handleRefresh(body: { user_id: string }): Promise<Response> {
 
   const refreshData = await refreshRes.json();
 
-  await supabase.from("strava_tokens").update({
-    access_token: refreshData.access_token,
-    refresh_token: refreshData.refresh_token,
-    expires_at: refreshData.expires_at,
-    updated_at: new Date().toISOString(),
-  }).eq("user_id", body.user_id);
+  await supabase
+    .from("strava_tokens")
+    .update({
+      access_token: refreshData.access_token,
+      refresh_token: refreshData.refresh_token,
+      expires_at: refreshData.expires_at,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("user_id", body.user_id);
 
-  return new Response(JSON.stringify({
-    access_token: refreshData.access_token,
-    athlete_name: token.athlete_name,
-  }), {
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
-  });
+  return new Response(
+    JSON.stringify({
+      access_token: refreshData.access_token,
+      athlete_name: token.athlete_name,
+    }),
+    {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    },
+  );
 }
 
 // GET /strava-auth/status?user_id=xxx — check connection status
@@ -186,14 +198,17 @@ async function handleStatus(url: URL): Promise<Response> {
     .eq("user_id", userId)
     .single();
 
-  return new Response(JSON.stringify({
-    connected: !!data,
-    athlete_name: data?.athlete_name ?? null,
-    athlete_id: data?.athlete_id ?? null,
-    last_updated: data?.updated_at ?? null,
-  }), {
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
-  });
+  return new Response(
+    JSON.stringify({
+      connected: !!data,
+      athlete_name: data?.athlete_name ?? null,
+      athlete_id: data?.athlete_id ?? null,
+      last_updated: data?.updated_at ?? null,
+    }),
+    {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    },
+  );
 }
 
 // DELETE /strava-auth/disconnect — remove token + deauthorize

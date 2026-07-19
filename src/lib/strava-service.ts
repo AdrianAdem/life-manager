@@ -84,14 +84,18 @@ export async function saveManualActivity(activity: {
   calories: number | null;
   raw_data: Record<string, unknown>;
 }) {
-  const { data, error } = await supabase.from("cardio_activities").insert({
-    user_id: USER_ID,
-    source: "manual",
-    external_id: null,
-    ...activity,
-    avg_heartrate: null,
-    max_heartrate: null,
-  }).select().single();
+  const { data, error } = await supabase
+    .from("cardio_activities")
+    .insert({
+      user_id: USER_ID,
+      source: "manual",
+      external_id: null,
+      ...activity,
+      avg_heartrate: null,
+      max_heartrate: null,
+    })
+    .select()
+    .single();
   if (error) throw error;
   return data;
 }

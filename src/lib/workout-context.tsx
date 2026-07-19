@@ -1,4 +1,12 @@
-import { createContext, useContext, useState, useRef, useEffect, useCallback, type ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useState,
+  useRef,
+  useEffect,
+  useCallback,
+  type ReactNode,
+} from "react";
 import { supabase } from "@/lib/supabase";
 import { USER_ID } from "@/lib/constants";
 import { todayString } from "@/lib/utils";
@@ -112,18 +120,30 @@ export function WorkoutProvider({ children }: { children: ReactNode }) {
 
   const startWorkout = useCallback(async (day: string) => {
     const { data: plans } = await supabase
-      .from("training_plans").select("id").eq("user_id", USER_ID).eq("is_active", true);
+      .from("training_plans")
+      .select("id")
+      .eq("user_id", USER_ID)
+      .eq("is_active", true);
     if (!plans || plans.length === 0) return;
     const planIds = plans.map((p) => p.id);
     const { data: exs } = await supabase
-      .from("training_exercises").select("*").in("plan_id", planIds).eq("day_label", day).order("order_index");
+      .from("training_exercises")
+      .select("*")
+      .in("plan_id", planIds)
+      .eq("day_label", day)
+      .order("order_index");
     if (!exs) return;
 
     const exercisesWithPrev: WorkoutExercise[] = await Promise.all(
       (exs as TrainingExercise[]).map(async (ex) => {
         const { data: prevLog } = await supabase
-          .from("training_logs").select("sets_completed").eq("exercise_id", ex.id)
-          .eq("user_id", USER_ID).order("date", { ascending: false }).limit(1).single();
+          .from("training_logs")
+          .select("sets_completed")
+          .eq("exercise_id", ex.id)
+          .eq("user_id", USER_ID)
+          .order("date", { ascending: false })
+          .limit(1)
+          .single();
         const prevSets = prevLog ? (prevLog.sets_completed as SetLog[]) : null;
         return {
           ...ex,
@@ -136,7 +156,7 @@ export function WorkoutProvider({ children }: { children: ReactNode }) {
           previous_log: prevSets,
           saved: false,
         };
-      })
+      }),
     );
     setExercises(exercisesWithPrev);
     setCurrentExIdx(0);
@@ -150,29 +170,41 @@ export function WorkoutProvider({ children }: { children: ReactNode }) {
     workoutStart.current = new Date();
   }, []);
 
-  const updateSet = useCallback((exIdx: number, setIdx: number, field: "weight_kg" | "reps", value: number) => {
-    setExercises((prev) =>
-      prev.map((ex, i) => i === exIdx
-        ? { ...ex, sets_data: ex.sets_data.map((s, j) => j === setIdx ? { ...s, [field]: value } : s) }
-        : ex
-      )
-    );
-  }, []);
+  const updateSet = useCallback(
+    (exIdx: number, setIdx: number, field: "weight_kg" | "reps", value: number) => {
+      setExercises((prev) =>
+        prev.map((ex, i) =>
+          i === exIdx
+            ? {
+                ...ex,
+                sets_data: ex.sets_data.map((s, j) =>
+                  j === setIdx ? { ...s, [field]: value } : s,
+                ),
+              }
+            : ex,
+        ),
+      );
+    },
+    [],
+  );
 
-  const toggleSetComplete = useCallback((exIdx: number, setIdx: number) => {
-    setExercises((prev) =>
-      prev.map((ex, i) => {
-        if (i !== exIdx) return ex;
-        const newSets = ex.sets_data.map((s, j) => {
-          if (j !== setIdx) return s;
-          const nowCompleted = !s.completed;
-          if (nowCompleted) startRestTimer();
-          return { ...s, completed: nowCompleted };
-        });
-        return { ...ex, sets_data: newSets };
-      })
-    );
-  }, [startRestTimer]);
+  const toggleSetComplete = useCallback(
+    (exIdx: number, setIdx: number) => {
+      setExercises((prev) =>
+        prev.map((ex, i) => {
+          if (i !== exIdx) return ex;
+          const newSets = ex.sets_data.map((s, j) => {
+            if (j !== setIdx) return s;
+            const nowCompleted = !s.completed;
+            if (nowCompleted) startRestTimer();
+            return { ...s, completed: nowCompleted };
+          });
+          return { ...ex, sets_data: newSets };
+        }),
+      );
+    },
+    [startRestTimer],
+  );
 
   const addSet = useCallback((exIdx: number) => {
     setExercises((prev) =>
@@ -183,10 +215,15 @@ export function WorkoutProvider({ children }: { children: ReactNode }) {
           ...ex,
           sets_data: [
             ...ex.sets_data,
-            { set: ex.sets_data.length + 1, weight_kg: lastSet?.weight_kg ?? 0, reps: lastSet?.reps ?? ex.reps, completed: false },
+            {
+              set: ex.sets_data.length + 1,
+              weight_kg: lastSet?.weight_kg ?? 0,
+              reps: lastSet?.reps ?? ex.reps,
+              completed: false,
+            },
           ],
         };
-      })
+      }),
     );
   }, []);
 
@@ -196,23 +233,30 @@ export function WorkoutProvider({ children }: { children: ReactNode }) {
         if (i !== exIdx || ex.sets_data.length <= 1) return ex;
         return {
           ...ex,
-          sets_data: ex.sets_data.filter((_, j) => j !== setIdx).map((s, j) => ({ ...s, set: j + 1 })),
+          sets_data: ex.sets_data
+            .filter((_, j) => j !== setIdx)
+            .map((s, j) => ({ ...s, set: j + 1 })),
         };
-      })
+      }),
     );
   }, []);
 
-  const saveExercise = useCallback(async (exIdx: number) => {
-    const ex = exercises[exIdx];
-    const completedSets = ex.sets_data.filter((s) => s.completed);
-    if (completedSets.length === 0) return;
+  const saveExercise = useCallback(
+    async (exIdx: number) => {
+      const ex = exercises[exIdx];
+      const completedSets = ex.sets_data.filter((s) => s.completed);
+      if (completedSets.length === 0) return;
 
-    await supabase.from("training_logs").insert({
-      exercise_id: ex.id, user_id: USER_ID, date: todayString(),
-      sets_completed: completedSets.map(({ completed: _, ...s }) => s),
-    });
-    setExercises((prev) => prev.map((e, i) => (i === exIdx ? { ...e, saved: true } : e)));
-  }, [exercises]);
+      await supabase.from("training_logs").insert({
+        exercise_id: ex.id,
+        user_id: USER_ID,
+        date: todayString(),
+        sets_completed: completedSets.map(({ completed: _, ...s }) => s),
+      });
+      setExercises((prev) => prev.map((e, i) => (i === exIdx ? { ...e, saved: true } : e)));
+    },
+    [exercises],
+  );
 
   const goToNextExercise = useCallback(() => {
     const current = exercises[currentExIdx];
@@ -241,8 +285,12 @@ export function WorkoutProvider({ children }: { children: ReactNode }) {
       const ex = exercises[i];
       if (!ex.saved && ex.sets_data.some((s) => s.completed)) {
         await supabase.from("training_logs").insert({
-          exercise_id: ex.id, user_id: USER_ID, date: todayString(),
-          sets_completed: ex.sets_data.filter((s) => s.completed).map(({ completed: _, ...s }) => s),
+          exercise_id: ex.id,
+          user_id: USER_ID,
+          date: todayString(),
+          sets_completed: ex.sets_data
+            .filter((s) => s.completed)
+            .map(({ completed: _, ...s }) => s),
         });
       }
     }
@@ -269,7 +317,14 @@ export function WorkoutProvider({ children }: { children: ReactNode }) {
       return { name: ex.name, muscle_group: ex.muscle_group, isPR, improvement };
     });
 
-    setSummary({ dayLabel, totalSets, totalWeightKg: Math.round(totalWeight), durationMin: duration, exercises: exSummaries, records });
+    setSummary({
+      dayLabel,
+      totalSets,
+      totalWeightKg: Math.round(totalWeight),
+      durationMin: duration,
+      exercises: exSummaries,
+      records,
+    });
     skipTimer();
     setWorkoutActive(false);
     setExercises([]);
@@ -281,14 +336,36 @@ export function WorkoutProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <WorkoutContext.Provider value={{
-      workoutActive, exercises, currentExIdx, restTimer, restDuration,
-      timerActive, summary, dayLabel, workoutStartTime: workoutStart.current,
-      setExercises, setCurrentExIdx, setRestDuration, setDayLabel,
-      startWorkout, updateSet, toggleSetComplete, addSet, removeSet,
-      startRestTimer, skipTimer, adjustTimer, saveExercise,
-      goToNextExercise, goToPrevExercise, finishWorkout, closeSummary,
-    }}>
+    <WorkoutContext.Provider
+      value={{
+        workoutActive,
+        exercises,
+        currentExIdx,
+        restTimer,
+        restDuration,
+        timerActive,
+        summary,
+        dayLabel,
+        workoutStartTime: workoutStart.current,
+        setExercises,
+        setCurrentExIdx,
+        setRestDuration,
+        setDayLabel,
+        startWorkout,
+        updateSet,
+        toggleSetComplete,
+        addSet,
+        removeSet,
+        startRestTimer,
+        skipTimer,
+        adjustTimer,
+        saveExercise,
+        goToNextExercise,
+        goToPrevExercise,
+        finishWorkout,
+        closeSummary,
+      }}
+    >
       {children}
     </WorkoutContext.Provider>
   );

@@ -1,7 +1,8 @@
 export type MealType = "frühstück" | "mittagessen" | "abendessen" | "snack";
 export type TodoPriority = "hoch" | "mittel" | "niedrig";
 export type SportCategory = "kraft" | "cardio" | "mobility" | "sonstiges";
-export type RoutineCategory = "kraft" | "cardio" | "mobility" | "sonstiges" | "gesundheit" | "morgenroutine" | "abendroutine";
+export type RoutineCategory =
+  "kraft" | "cardio" | "mobility" | "sonstiges" | "gesundheit" | "morgenroutine" | "abendroutine";
 export type RoutineArea = "alltag" | "sport";
 
 export interface UserProfile {

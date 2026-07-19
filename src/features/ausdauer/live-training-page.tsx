@@ -32,11 +32,13 @@ const ACTIVITY_TYPES = [
 // Haversine distance in meters
 function haversine(a: GpsPoint, b: GpsPoint): number {
   const R = 6371000;
-  const dLat = (b.lat - a.lat) * Math.PI / 180;
-  const dLng = (b.lng - a.lng) * Math.PI / 180;
+  const dLat = ((b.lat - a.lat) * Math.PI) / 180;
+  const dLng = ((b.lng - a.lng) * Math.PI) / 180;
   const sinLat = Math.sin(dLat / 2);
   const sinLng = Math.sin(dLng / 2);
-  const h = sinLat * sinLat + Math.cos(a.lat * Math.PI / 180) * Math.cos(b.lat * Math.PI / 180) * sinLng * sinLng;
+  const h =
+    sinLat * sinLat +
+    Math.cos((a.lat * Math.PI) / 180) * Math.cos((b.lat * Math.PI) / 180) * sinLng * sinLng;
   return R * 2 * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
 }
 
@@ -59,7 +61,8 @@ function formatPace(secPerKm: number): string {
 // Encode [lat, lng][] to Google polyline format
 function encodePolyline(points: [number, number][]): string {
   let encoded = "";
-  let pLat = 0, pLng = 0;
+  let pLat = 0,
+    pLng = 0;
   for (const [lat, lng] of points) {
     const dLat = Math.round(lat * 1e5) - pLat;
     const dLng = Math.round(lng * 1e5) - pLng;
@@ -67,7 +70,10 @@ function encodePolyline(points: [number, number][]): string {
     pLng += dLng;
     for (const d of [dLat, dLng]) {
       let v = d < 0 ? ~(d << 1) : d << 1;
-      while (v >= 0x20) { encoded += String.fromCharCode((v & 0x1f) | 0x20 + 63); v >>= 5; }
+      while (v >= 0x20) {
+        encoded += String.fromCharCode((v & 0x1f) | (0x20 + 63));
+        v >>= 5;
+      }
       encoded += String.fromCharCode(v + 63);
     }
   }
@@ -136,7 +142,10 @@ export function LiveTrainingPage() {
     polylineRef.current = line;
     posMarkerRef.current = marker;
 
-    return () => { map.remove(); mapRef.current = null; };
+    return () => {
+      map.remove();
+      mapRef.current = null;
+    };
   }, []);
 
   // Request wake lock
@@ -177,7 +186,13 @@ export function LiveTrainingPage() {
     if (points.current.length === 1) {
       mapRef.current?.setView(latLng, 16);
       // Add start marker
-      L.circleMarker(latLng, { radius: 5, color: "#22c55e", fillColor: "#22c55e", fillOpacity: 1, weight: 0 }).addTo(mapRef.current!);
+      L.circleMarker(latLng, {
+        radius: 5,
+        color: "#22c55e",
+        fillColor: "#22c55e",
+        fillOpacity: 1,
+        weight: 0,
+      }).addTo(mapRef.current!);
     }
 
     if (!prev) return;
@@ -253,7 +268,13 @@ export function LiveTrainingPage() {
     // Add end marker
     const last = points.current[points.current.length - 1];
     if (last && mapRef.current) {
-      L.circleMarker([last.lat, last.lng], { radius: 5, color: "#ef4444", fillColor: "#ef4444", fillOpacity: 1, weight: 0 }).addTo(mapRef.current);
+      L.circleMarker([last.lat, last.lng], {
+        radius: 5,
+        color: "#ef4444",
+        fillColor: "#ef4444",
+        fillOpacity: 1,
+        weight: 0,
+      }).addTo(mapRef.current);
       // Fit to route
       if (polylineRef.current && points.current.length > 1) {
         mapRef.current.fitBounds(polylineRef.current.getBounds(), { padding: [30, 30] });
@@ -308,7 +329,9 @@ export function LiveTrainingPage() {
         elevation_gain_m: Math.round(elevation),
         avg_pace_sec_per_km: distance > 0 ? Math.round((elapsedSec / distance) * 1000) : null,
         avg_speed_ms: elapsedSec > 0 ? distance / elapsedSec : null,
-        calories: Math.round(elapsedSec / 60 * (activityType === "run" ? 10 : activityType === "ride" ? 7 : 5)),
+        calories: Math.round(
+          (elapsedSec / 60) * (activityType === "run" ? 10 : activityType === "ride" ? 7 : 5),
+        ),
         raw_data: {
           source: "live_tracking",
           laps,
@@ -359,12 +382,42 @@ export function LiveTrainingPage() {
         {/* Live stats */}
         {(isActive || state === "finished") && (
           <div className="grid grid-cols-2 gap-3 mb-4">
-            <StatBlock label="Distanz" value={distance >= 1000 ? `${(distance / 1000).toFixed(2)}` : `0.${String(Math.round(distance)).padStart(3, "0")}`} unit="km" icon={<MapPin className="h-3.5 w-3.5 text-blue-400" />} large />
-            <StatBlock label="Dauer" value={formatDuration(elapsed)} icon={<Clock className="h-3.5 w-3.5 text-green-400" />} large />
-            <StatBlock label="Pace" value={formatPace(currentPace)} unit="/km" icon={<Gauge className="h-3.5 w-3.5 text-purple-400" />} />
-            <StatBlock label="Ø Pace" value={formatPace(avgPace)} unit="/km" icon={<Gauge className="h-3.5 w-3.5 text-purple-300" />} />
+            <StatBlock
+              label="Distanz"
+              value={
+                distance >= 1000
+                  ? `${(distance / 1000).toFixed(2)}`
+                  : `0.${String(Math.round(distance)).padStart(3, "0")}`
+              }
+              unit="km"
+              icon={<MapPin className="h-3.5 w-3.5 text-blue-400" />}
+              large
+            />
+            <StatBlock
+              label="Dauer"
+              value={formatDuration(elapsed)}
+              icon={<Clock className="h-3.5 w-3.5 text-green-400" />}
+              large
+            />
+            <StatBlock
+              label="Pace"
+              value={formatPace(currentPace)}
+              unit="/km"
+              icon={<Gauge className="h-3.5 w-3.5 text-purple-400" />}
+            />
+            <StatBlock
+              label="Ø Pace"
+              value={formatPace(avgPace)}
+              unit="/km"
+              icon={<Gauge className="h-3.5 w-3.5 text-purple-300" />}
+            />
             {elevation > 0 && (
-              <StatBlock label="Höhenmeter" value={`${Math.round(elevation)}`} unit="m" icon={<Mountain className="h-3.5 w-3.5 text-amber-400" />} />
+              <StatBlock
+                label="Höhenmeter"
+                value={`${Math.round(elevation)}`}
+                unit="m"
+                icon={<Mountain className="h-3.5 w-3.5 text-amber-400" />}
+              />
             )}
           </div>
         )}
@@ -373,7 +426,10 @@ export function LiveTrainingPage() {
         {laps.length > 0 && state !== "finished" && (
           <div className="mb-3 flex gap-2 overflow-x-auto pb-1">
             {laps.map((lap) => (
-              <span key={lap.km} className="shrink-0 rounded-full bg-neutral-800 px-2.5 py-1 text-[10px] font-medium">
+              <span
+                key={lap.km}
+                className="shrink-0 rounded-full bg-neutral-800 px-2.5 py-1 text-[10px] font-medium"
+              >
                 Km {lap.km}: {formatPace(lap.pace)} /km
               </span>
             ))}
@@ -453,7 +509,9 @@ export function LiveTrainingPage() {
         {/* Finished: laps summary */}
         {state === "finished" && laps.length > 0 && (
           <div className="mt-4 rounded-xl bg-neutral-900 p-3">
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-neutral-500 mb-2">Runden</p>
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-neutral-500 mb-2">
+              Runden
+            </p>
             <div className="space-y-1">
               {laps.map((lap) => (
                 <div key={lap.km} className="flex items-center justify-between text-xs">
@@ -470,7 +528,13 @@ export function LiveTrainingPage() {
   );
 }
 
-function StatBlock({ label, value, unit, icon, large }: {
+function StatBlock({
+  label,
+  value,
+  unit,
+  icon,
+  large,
+}: {
   label: string;
   value: string;
   unit?: string;
@@ -484,7 +548,9 @@ function StatBlock({ label, value, unit, icon, large }: {
         <span className="text-[10px] text-neutral-500">{label}</span>
       </div>
       <div className="flex items-baseline gap-0.5">
-        <span className={cn("font-bold tabular-nums", large ? "text-2xl" : "text-lg")}>{value}</span>
+        <span className={cn("font-bold tabular-nums", large ? "text-2xl" : "text-lg")}>
+          {value}
+        </span>
         {unit && <span className="text-xs text-neutral-500">{unit}</span>}
       </div>
     </div>

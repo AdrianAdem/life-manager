@@ -1,7 +1,13 @@
 import { useState, useMemo } from "react";
 import { Trophy, TrendingDown, TrendingUp } from "lucide-react";
 import type { CardioActivity } from "@/types/database";
-import { formatDuration, formatPace, formatDistance, getWeekStart, getDayOfWeek } from "./ausdauer-utils";
+import {
+  formatDuration,
+  formatPace,
+  formatDistance,
+  getWeekStart,
+  getDayOfWeek,
+} from "./ausdauer-utils";
 
 type Period = "week" | "month" | "year";
 
@@ -20,7 +26,10 @@ function filterByPeriod(activities: CardioActivity[], period: Period): CardioAct
   return activities.filter((a) => new Date(a.start_date) >= start);
 }
 
-function groupByBucket(activities: CardioActivity[], period: Period): { label: string; km: number }[] {
+function groupByBucket(
+  activities: CardioActivity[],
+  period: Period,
+): { label: string; km: number }[] {
   const now = new Date();
   if (period === "week") {
     const days = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"];
@@ -48,7 +57,20 @@ function groupByBucket(activities: CardioActivity[], period: Period): { label: s
     }
     return weeks;
   } else {
-    const months = ["Jan", "Feb", "Mär", "Apr", "Mai", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dez"];
+    const months = [
+      "Jan",
+      "Feb",
+      "Mär",
+      "Apr",
+      "Mai",
+      "Jun",
+      "Jul",
+      "Aug",
+      "Sep",
+      "Okt",
+      "Nov",
+      "Dez",
+    ];
     const result = months.map((label) => ({ label, km: 0 }));
     for (const a of activities) {
       const d = new Date(a.start_date);
@@ -60,7 +82,13 @@ function groupByBucket(activities: CardioActivity[], period: Period): { label: s
   }
 }
 
-function BarChart({ data, accentColor }: { data: { label: string; km: number }[]; accentColor: string }) {
+function BarChart({
+  data,
+  accentColor,
+}: {
+  data: { label: string; km: number }[];
+  accentColor: string;
+}) {
   const max = Math.max(...data.map((d) => d.km), 0.1);
   const barW = 100 / data.length;
 
@@ -85,7 +113,13 @@ function BarChart({ data, accentColor }: { data: { label: string; km: number }[]
       </svg>
       <div className="flex justify-between px-0.5">
         {data.map((d, i) => (
-          <span key={i} className="text-[8px] text-neutral-600" style={{ width: `${barW}%`, textAlign: "center" }}>{d.label}</span>
+          <span
+            key={i}
+            className="text-[8px] text-neutral-600"
+            style={{ width: `${barW}%`, textAlign: "center" }}
+          >
+            {d.label}
+          </span>
         ))}
       </div>
     </div>
@@ -103,13 +137,16 @@ function PaceTrendChart({ activities }: { activities: CardioActivity[] }) {
   const min = Math.min(...paces);
   const max = Math.max(...paces);
   const range = max - min || 1;
-  const w = 100, h = 40;
+  const w = 100,
+    h = 40;
 
-  const points = paces.map((p, i) => {
-    const x = (i / (paces.length - 1)) * w;
-    const y = h - 4 - ((p - min) / range) * (h - 8);
-    return `${x},${y}`;
-  }).join(" ");
+  const points = paces
+    .map((p, i) => {
+      const x = (i / (paces.length - 1)) * w;
+      const y = h - 4 - ((p - min) / range) * (h - 8);
+      return `${x},${y}`;
+    })
+    .join(" ");
 
   const improving = paces[paces.length - 1] < paces[0];
 
@@ -117,13 +154,21 @@ function PaceTrendChart({ activities }: { activities: CardioActivity[] }) {
     <div className="rounded-xl bg-[#1A1A1A] p-4">
       <div className="flex items-center justify-between mb-2">
         <p className="text-xs font-medium text-neutral-400">Pace-Entwicklung</p>
-        <span className={`flex items-center gap-1 text-[10px] font-medium ${improving ? "text-green-400" : "text-red-400"}`}>
+        <span
+          className={`flex items-center gap-1 text-[10px] font-medium ${improving ? "text-green-400" : "text-red-400"}`}
+        >
           {improving ? <TrendingDown className="h-3 w-3" /> : <TrendingUp className="h-3 w-3" />}
           {improving ? "Schneller" : "Langsamer"}
         </span>
       </div>
       <svg viewBox={`0 0 ${w} ${h}`} className="w-full" preserveAspectRatio="none">
-        <polyline points={points} fill="none" stroke="#A855F7" strokeWidth="1.5" vectorEffect="non-scaling-stroke" />
+        <polyline
+          points={points}
+          fill="none"
+          stroke="#A855F7"
+          strokeWidth="1.5"
+          vectorEffect="non-scaling-stroke"
+        />
       </svg>
       <div className="flex justify-between mt-1 text-[9px] text-neutral-600">
         <span>{formatPace(paces[0])} /km</span>
@@ -150,9 +195,8 @@ function DayHeatmap({ activities }: { activities: CardioActivity[] }) {
             <div
               className="w-full aspect-square rounded-md"
               style={{
-                backgroundColor: counts[i] > 0
-                  ? `rgba(252, 76, 2, ${0.2 + (counts[i] / max) * 0.7})`
-                  : "#222",
+                backgroundColor:
+                  counts[i] > 0 ? `rgba(252, 76, 2, ${0.2 + (counts[i] / max) * 0.7})` : "#222",
               }}
             />
             <span className="text-[9px] text-neutral-600">{day}</span>
@@ -172,7 +216,9 @@ export function TabStats({ activities }: { activities: CardioActivity[] }) {
 
   // Single-pass totals
   const { totalDist, totalTime, totalElev } = useMemo(() => {
-    let dist = 0, time = 0, elev = 0;
+    let dist = 0,
+      time = 0,
+      elev = 0;
     for (const a of filtered) {
       dist += a.distance_m ?? 0;
       time += a.moving_time_sec ?? 0;
@@ -185,8 +231,17 @@ export function TabStats({ activities }: { activities: CardioActivity[] }) {
   const { fastestKm, longestRun } = useMemo(() => {
     const allRuns = activities.filter((a) => a.activity_type === "run");
     return {
-      fastestKm: allRuns.filter((a) => a.avg_pace_sec_per_km != null).reduce((best, a) => (a.avg_pace_sec_per_km! < (best?.avg_pace_sec_per_km ?? Infinity) ? a : best), null as CardioActivity | null),
-      longestRun: allRuns.reduce((best, a) => ((a.distance_m ?? 0) > (best?.distance_m ?? 0) ? a : best), null as CardioActivity | null),
+      fastestKm: allRuns
+        .filter((a) => a.avg_pace_sec_per_km != null)
+        .reduce(
+          (best, a) =>
+            a.avg_pace_sec_per_km! < (best?.avg_pace_sec_per_km ?? Infinity) ? a : best,
+          null as CardioActivity | null,
+        ),
+      longestRun: allRuns.reduce(
+        (best, a) => ((a.distance_m ?? 0) > (best?.distance_m ?? 0) ? a : best),
+        null as CardioActivity | null,
+      ),
     };
   }, [activities]);
 

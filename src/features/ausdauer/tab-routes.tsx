@@ -44,7 +44,10 @@ export function TabRoutes({ activities }: { activities: CardioActivity[] }) {
     let mostUsedHash = "";
     let mostUsedCount = 0;
     for (const [hash, count] of hashCounts) {
-      if (count > mostUsedCount) { mostUsedHash = hash; mostUsedCount = count; }
+      if (count > mostUsedCount) {
+        mostUsedHash = hash;
+        mostUsedCount = count;
+      }
     }
 
     const allBounds: L.LatLngBounds[] = [];
@@ -72,7 +75,10 @@ export function TabRoutes({ activities }: { activities: CardioActivity[] }) {
 
     mapInstance.current = map;
 
-    return () => { map.remove(); mapInstance.current = null; };
+    return () => {
+      map.remove();
+      mapInstance.current = null;
+    };
   }, [activities]);
 
   const routeCount = activities.filter((a) => getPolyline(a)).length;

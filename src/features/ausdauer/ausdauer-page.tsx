@@ -1,5 +1,20 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
-import { RefreshCw, Activity, Clock, MapPin, Flame, Mountain, Gauge, Heart, Link2, Play, X, Trophy, TrendingUp, TrendingDown } from "lucide-react";
+import {
+  RefreshCw,
+  Activity,
+  Clock,
+  MapPin,
+  Flame,
+  Mountain,
+  Gauge,
+  Heart,
+  Link2,
+  Play,
+  X,
+  Trophy,
+  TrendingUp,
+  TrendingDown,
+} from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
@@ -7,10 +22,20 @@ import { getCardioActivities, syncStravaActivities, getStravaStatus } from "@/li
 import type { CardioActivity } from "@/types/database";
 import { cn } from "@/lib/utils";
 import {
-  activityLabels, activityIcons, activityAccent, decodePolyline,
-  formatDuration, formatPace, formatDistance,
-  getWeekStart, getPrevWeekStart, getDayOfWeek,
-  groupByWeek, computeBadges, getPolyline, CARTO_DARK_TILES,
+  activityLabels,
+  activityIcons,
+  activityAccent,
+  decodePolyline,
+  formatDuration,
+  formatPace,
+  formatDistance,
+  getWeekStart,
+  getPrevWeekStart,
+  getDayOfWeek,
+  groupByWeek,
+  computeBadges,
+  getPolyline,
+  CARTO_DARK_TILES,
 } from "./ausdauer-utils";
 import { TabStats } from "./tab-stats";
 import { TabGoals } from "./tab-goals";
@@ -22,10 +47,14 @@ type SubTab = "feed" | "statistiken" | "ziele" | "routen";
 function WeekDashboard({ activities }: { activities: CardioActivity[] }) {
   const ws = getWeekStart(new Date());
   const pws = getPrevWeekStart(new Date());
-  const pwe = new Date(pws); pwe.setDate(pwe.getDate() + 7);
+  const pwe = new Date(pws);
+  pwe.setDate(pwe.getDate() + 7);
 
   const thisWeek = activities.filter((a) => new Date(a.start_date) >= ws);
-  const prevWeek = activities.filter((a) => { const d = new Date(a.start_date); return d >= pws && d < pwe; });
+  const prevWeek = activities.filter((a) => {
+    const d = new Date(a.start_date);
+    return d >= pws && d < pwe;
+  });
 
   const weekKm = thisWeek.reduce((s, a) => s + (a.distance_m ?? 0), 0) / 1000;
   const prevKm = prevWeek.reduce((s, a) => s + (a.distance_m ?? 0), 0) / 1000;
@@ -33,9 +62,8 @@ function WeekDashboard({ activities }: { activities: CardioActivity[] }) {
   const weekCount = thisWeek.length;
 
   const runs = thisWeek.filter((a) => a.activity_type === "run" && a.avg_pace_sec_per_km != null);
-  const avgPace = runs.length > 0
-    ? runs.reduce((s, a) => s + a.avg_pace_sec_per_km!, 0) / runs.length
-    : null;
+  const avgPace =
+    runs.length > 0 ? runs.reduce((s, a) => s + a.avg_pace_sec_per_km!, 0) / runs.length : null;
 
   const diff = weekKm - prevKm;
 
@@ -54,22 +82,40 @@ function WeekDashboard({ activities }: { activities: CardioActivity[] }) {
       {/* Big km number */}
       <div className="flex items-end justify-between">
         <div>
-          <p className="text-3xl font-black tabular-nums">{weekKm.toFixed(1)} <span className="text-base font-semibold text-neutral-500">km</span></p>
+          <p className="text-3xl font-black tabular-nums">
+            {weekKm.toFixed(1)} <span className="text-base font-semibold text-neutral-500">km</span>
+          </p>
           <p className="text-[10px] text-neutral-500 mt-0.5">Diese Woche</p>
         </div>
         {prevKm > 0 && (
-          <span className={cn("flex items-center gap-0.5 text-[11px] font-medium", diff >= 0 ? "text-green-400" : "text-red-400")}>
+          <span
+            className={cn(
+              "flex items-center gap-0.5 text-[11px] font-medium",
+              diff >= 0 ? "text-green-400" : "text-red-400",
+            )}
+          >
             {diff >= 0 ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
-            {diff >= 0 ? "+" : ""}{diff.toFixed(1)} km
+            {diff >= 0 ? "+" : ""}
+            {diff.toFixed(1)} km
           </span>
         )}
       </div>
 
       {/* Secondary stats */}
       <div className="flex gap-4 text-xs">
-        <span className="text-neutral-400"><Clock className="inline h-3 w-3 mr-1 text-green-400" />{formatDuration(weekTime)}</span>
-        <span className="text-neutral-400">{weekCount} Aktivität{weekCount !== 1 ? "en" : ""}</span>
-        {avgPace && <span className="text-neutral-400"><Gauge className="inline h-3 w-3 mr-1 text-purple-400" />{formatPace(avgPace)} /km</span>}
+        <span className="text-neutral-400">
+          <Clock className="inline h-3 w-3 mr-1 text-green-400" />
+          {formatDuration(weekTime)}
+        </span>
+        <span className="text-neutral-400">
+          {weekCount} Aktivität{weekCount !== 1 ? "en" : ""}
+        </span>
+        {avgPace && (
+          <span className="text-neutral-400">
+            <Gauge className="inline h-3 w-3 mr-1 text-purple-400" />
+            {formatPace(avgPace)} /km
+          </span>
+        )}
       </div>
 
       {/* Daily bar chart */}
@@ -88,7 +134,15 @@ function WeekDashboard({ activities }: { activities: CardioActivity[] }) {
       </div>
       <div className="flex gap-1">
         {days.map((d, i) => (
-          <span key={i} className={cn("flex-1 text-center text-[8px]", i === today ? "text-neutral-300 font-bold" : "text-neutral-600")}>{d}</span>
+          <span
+            key={i}
+            className={cn(
+              "flex-1 text-center text-[8px]",
+              i === today ? "text-neutral-300 font-bold" : "text-neutral-600",
+            )}
+          >
+            {d}
+          </span>
         ))}
       </div>
     </div>
@@ -96,7 +150,15 @@ function WeekDashboard({ activities }: { activities: CardioActivity[] }) {
 }
 
 // ── Leaflet map with gradient route ──────────────────────────────
-function LazyRouteMap({ polyline, accentColor, onClick }: { polyline: string; accentColor: string; onClick: () => void }) {
+function LazyRouteMap({
+  polyline,
+  accentColor,
+  onClick,
+}: {
+  polyline: string;
+  accentColor: string;
+  onClick: () => void;
+}) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const initialized = useRef(false);
@@ -113,9 +175,13 @@ function LazyRouteMap({ polyline, accentColor, onClick }: { polyline: string; ac
           if (coords.length < 2) return;
 
           const map = L.map(el, {
-            zoomControl: false, attributionControl: false,
-            dragging: false, scrollWheelZoom: false,
-            doubleClickZoom: false, touchZoom: false, keyboard: false,
+            zoomControl: false,
+            attributionControl: false,
+            dragging: false,
+            scrollWheelZoom: false,
+            doubleClickZoom: false,
+            touchZoom: false,
+            keyboard: false,
           });
 
           L.tileLayer(CARTO_DARK_TILES, { maxZoom: 19 }).addTo(map);
@@ -139,10 +205,34 @@ function LazyRouteMap({ polyline, accentColor, onClick }: { polyline: string; ac
           map.fitBounds(L.latLngBounds(coords), { padding: [28, 28] });
 
           // Start/end with glow
-          L.circleMarker(coords[0], { radius: 8, color: "#22c55e", fillColor: "#22c55e", fillOpacity: 0.2, weight: 2 }).addTo(map);
-          L.circleMarker(coords[0], { radius: 4, color: "#22c55e", fillColor: "#22c55e", fillOpacity: 1, weight: 0 }).addTo(map);
-          L.circleMarker(coords[coords.length - 1], { radius: 8, color: "#ef4444", fillColor: "#ef4444", fillOpacity: 0.2, weight: 2 }).addTo(map);
-          L.circleMarker(coords[coords.length - 1], { radius: 4, color: "#ef4444", fillColor: "#ef4444", fillOpacity: 1, weight: 0 }).addTo(map);
+          L.circleMarker(coords[0], {
+            radius: 8,
+            color: "#22c55e",
+            fillColor: "#22c55e",
+            fillOpacity: 0.2,
+            weight: 2,
+          }).addTo(map);
+          L.circleMarker(coords[0], {
+            radius: 4,
+            color: "#22c55e",
+            fillColor: "#22c55e",
+            fillOpacity: 1,
+            weight: 0,
+          }).addTo(map);
+          L.circleMarker(coords[coords.length - 1], {
+            radius: 8,
+            color: "#ef4444",
+            fillColor: "#ef4444",
+            fillOpacity: 0.2,
+            weight: 2,
+          }).addTo(map);
+          L.circleMarker(coords[coords.length - 1], {
+            radius: 4,
+            color: "#ef4444",
+            fillColor: "#ef4444",
+            fillOpacity: 1,
+            weight: 0,
+          }).addTo(map);
 
           mapRef.current = map;
           observer.disconnect();
@@ -152,12 +242,19 @@ function LazyRouteMap({ polyline, accentColor, onClick }: { polyline: string; ac
     );
 
     observer.observe(el);
-    return () => { observer.disconnect(); mapRef.current?.remove(); };
+    return () => {
+      observer.disconnect();
+      mapRef.current?.remove();
+    };
   }, [polyline, accentColor]);
 
   return (
     <div className="relative z-0 isolate h-[200px] w-full overflow-hidden">
-      <div ref={containerRef} onClick={onClick} className="absolute inset-0 cursor-pointer bg-neutral-900" />
+      <div
+        ref={containerRef}
+        onClick={onClick}
+        className="absolute inset-0 cursor-pointer bg-neutral-900"
+      />
     </div>
   );
 }
@@ -172,25 +269,50 @@ function useActivityMeta(activity: CardioActivity) {
   };
 }
 
-function ActivityCard({ activity, badge, onClick }: { activity: CardioActivity; badge: string | null; onClick: () => void }) {
+function ActivityCard({
+  activity,
+  badge,
+  onClick,
+}: {
+  activity: CardioActivity;
+  badge: string | null;
+  onClick: () => void;
+}) {
   const polyline = getPolyline(activity);
   const { icon, label, accent, date: dateStr } = useActivityMeta(activity);
 
   return (
-    <div className="rounded-2xl bg-[#1A1A1A] overflow-hidden" style={{ borderLeft: `3px solid ${accent}` }}>
+    <div
+      className="rounded-2xl bg-[#1A1A1A] overflow-hidden"
+      style={{ borderLeft: `3px solid ${accent}` }}
+    >
       <div className="flex items-center gap-3 px-4 pt-3.5 pb-2.5 cursor-pointer" onClick={onClick}>
-        <div className="flex h-9 w-9 items-center justify-center rounded-full text-base" style={{ backgroundColor: `${accent}15` }}>{icon}</div>
+        <div
+          className="flex h-9 w-9 items-center justify-center rounded-full text-base"
+          style={{ backgroundColor: `${accent}15` }}
+        >
+          {icon}
+        </div>
         <div className="flex-1 min-w-0">
           <p className="text-sm font-semibold truncate">{activity.name ?? label}</p>
           <p className="text-[11px] text-neutral-500">
-            {dateStr.toLocaleDateString("de-DE", { weekday: "short", day: "numeric", month: "short", year: "numeric" })}
+            {dateStr.toLocaleDateString("de-DE", {
+              weekday: "short",
+              day: "numeric",
+              month: "short",
+              year: "numeric",
+            })}
             {" · "}
             {dateStr.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" })} Uhr
           </p>
         </div>
         {badge && (
-          <span className="flex items-center gap-1 rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide" style={{ backgroundColor: `${accent}20`, color: accent }}>
-            <Trophy className="h-2.5 w-2.5" />{badge}
+          <span
+            className="flex items-center gap-1 rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide"
+            style={{ backgroundColor: `${accent}20`, color: accent }}
+          >
+            <Trophy className="h-2.5 w-2.5" />
+            {badge}
           </span>
         )}
       </div>
@@ -198,52 +320,105 @@ function ActivityCard({ activity, badge, onClick }: { activity: CardioActivity; 
       {polyline ? (
         <LazyRouteMap polyline={polyline} accentColor={accent} onClick={onClick} />
       ) : (
-        <div onClick={onClick} className="flex h-[100px] items-center justify-center cursor-pointer" style={{ backgroundColor: `${accent}08` }}>
+        <div
+          onClick={onClick}
+          className="flex h-[100px] items-center justify-center cursor-pointer"
+          style={{ backgroundColor: `${accent}08` }}
+        >
           <span className="text-4xl opacity-20">{icon}</span>
         </div>
       )}
 
-      <div className="flex items-center gap-1.5 px-4 py-3 overflow-x-auto cursor-pointer" onClick={onClick}>
+      <div
+        className="flex items-center gap-1.5 px-4 py-3 overflow-x-auto cursor-pointer"
+        onClick={onClick}
+      >
         {activity.distance_m != null && activity.distance_m > 0 && (
           <span className="flex items-center gap-1 rounded-full bg-neutral-800/70 px-2.5 py-1 text-[11px] font-bold text-white whitespace-nowrap shrink-0">
-            <MapPin className="h-3 w-3 text-blue-400" />{formatDistance(activity.distance_m)}
+            <MapPin className="h-3 w-3 text-blue-400" />
+            {formatDistance(activity.distance_m)}
           </span>
         )}
         {activity.avg_pace_sec_per_km != null && activity.activity_type === "run" && (
-          <StatPill icon={<Gauge className="h-3 w-3 text-purple-400" />} value={`${formatPace(activity.avg_pace_sec_per_km)} /km`} />
+          <StatPill
+            icon={<Gauge className="h-3 w-3 text-purple-400" />}
+            value={`${formatPace(activity.avg_pace_sec_per_km)} /km`}
+          />
         )}
-        {activity.avg_speed_ms != null && activity.activity_type !== "run" && activity.avg_speed_ms > 0 && (
-          <StatPill icon={<Gauge className="h-3 w-3 text-purple-400" />} value={`${(activity.avg_speed_ms * 3.6).toFixed(1)} km/h`} />
-        )}
+        {activity.avg_speed_ms != null &&
+          activity.activity_type !== "run" &&
+          activity.avg_speed_ms > 0 && (
+            <StatPill
+              icon={<Gauge className="h-3 w-3 text-purple-400" />}
+              value={`${(activity.avg_speed_ms * 3.6).toFixed(1)} km/h`}
+            />
+          )}
         {activity.moving_time_sec != null && (
-          <StatPill icon={<Clock className="h-3 w-3 text-green-400" />} value={formatDuration(activity.moving_time_sec)} />
+          <StatPill
+            icon={<Clock className="h-3 w-3 text-green-400" />}
+            value={formatDuration(activity.moving_time_sec)}
+          />
         )}
         {activity.elevation_gain_m != null && activity.elevation_gain_m > 0 && (
-          <StatPill icon={<Mountain className="h-3 w-3 text-amber-400" />} value={`${Math.round(activity.elevation_gain_m)} m`} />
+          <StatPill
+            icon={<Mountain className="h-3 w-3 text-amber-400" />}
+            value={`${Math.round(activity.elevation_gain_m)} m`}
+          />
         )}
         {activity.avg_heartrate != null && (
-          <StatPill icon={<Heart className="h-3 w-3 text-red-400" />} value={`${activity.avg_heartrate} bpm`} />
+          <StatPill
+            icon={<Heart className="h-3 w-3 text-red-400" />}
+            value={`${activity.avg_heartrate} bpm`}
+          />
         )}
         {activity.calories != null && activity.calories > 0 && (
-          <StatPill icon={<Flame className="h-3 w-3 text-orange-400" />} value={`${activity.calories} kcal`} />
+          <StatPill
+            icon={<Flame className="h-3 w-3 text-orange-400" />}
+            value={`${activity.calories} kcal`}
+          />
         )}
       </div>
     </div>
   );
 }
 
-function CompactCard({ activity, badge, onClick }: { activity: CardioActivity; badge: string | null; onClick: () => void }) {
+function CompactCard({
+  activity,
+  badge,
+  onClick,
+}: {
+  activity: CardioActivity;
+  badge: string | null;
+  onClick: () => void;
+}) {
   const { icon, label, accent, date: dateStr } = useActivityMeta(activity);
 
   return (
-    <div onClick={onClick} className="flex items-center gap-3 rounded-xl bg-[#1A1A1A] p-3 cursor-pointer active:scale-[0.98] transition-transform" style={{ borderLeft: `3px solid ${accent}` }}>
+    <div
+      onClick={onClick}
+      className="flex items-center gap-3 rounded-xl bg-[#1A1A1A] p-3 cursor-pointer active:scale-[0.98] transition-transform"
+      style={{ borderLeft: `3px solid ${accent}` }}
+    >
       <span className="text-lg">{icon}</span>
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium truncate">{activity.name ?? label}</p>
         <div className="flex items-center gap-2 text-[11px] text-neutral-500">
-          <span>{dateStr.toLocaleDateString("de-DE", { weekday: "short", day: "numeric", month: "short", year: "numeric" })}</span>
-          {activity.distance_m != null && activity.distance_m > 0 && <span className="font-medium text-neutral-300">{formatDistance(activity.distance_m)}</span>}
-          {activity.moving_time_sec != null && <span>{formatDuration(activity.moving_time_sec)}</span>}
+          <span>
+            {dateStr.toLocaleDateString("de-DE", {
+              weekday: "short",
+              day: "numeric",
+              month: "short",
+              year: "numeric",
+            })}
+          </span>
+          {activity.distance_m != null && activity.distance_m > 0 && (
+            <span className="font-medium text-neutral-300">
+              {formatDistance(activity.distance_m)}
+            </span>
+          )}
+          {activity.moving_time_sec != null && (
+            <span>{formatDuration(activity.moving_time_sec)}</span>
+          )}
         </div>
       </div>
       {badge && <Trophy className="h-3 w-3" style={{ color: accent }} />}
@@ -254,12 +429,23 @@ function CompactCard({ activity, badge, onClick }: { activity: CardioActivity; b
 function StatPill({ icon, value }: { icon: React.ReactNode; value: string }) {
   return (
     <span className="flex items-center gap-1 rounded-full bg-neutral-800/70 px-2.5 py-1 text-[11px] font-medium text-neutral-400 whitespace-nowrap shrink-0">
-      {icon}{value}
+      {icon}
+      {value}
     </span>
   );
 }
 
-function WeekHeader({ label, dist, time, count }: { label: string; dist: number; time: number; count: number }) {
+function WeekHeader({
+  label,
+  dist,
+  time,
+  count,
+}: {
+  label: string;
+  dist: number;
+  time: number;
+  count: number;
+}) {
   return (
     <div className="flex items-center gap-3 py-2">
       <div className="h-px flex-1 bg-neutral-800" />
@@ -270,7 +456,9 @@ function WeekHeader({ label, dist, time, count }: { label: string; dist: number;
         <span className="text-neutral-600">·</span>
         <span>{formatDuration(time)}</span>
         <span className="text-neutral-600">·</span>
-        <span>{count} {count === 1 ? "Aktivität" : "Aktivitäten"}</span>
+        <span>
+          {count} {count === 1 ? "Aktivität" : "Aktivitäten"}
+        </span>
       </div>
       <div className="h-px flex-1 bg-neutral-800" />
     </div>
@@ -278,7 +466,13 @@ function WeekHeader({ label, dist, time, count }: { label: string; dist: number;
 }
 
 // ── Feed tab content ─────────────────────────────────────────────
-function TabFeed({ activities, navigate }: { activities: CardioActivity[]; navigate: (path: string) => void }) {
+function TabFeed({
+  activities,
+  navigate,
+}: {
+  activities: CardioActivity[];
+  navigate: (path: string) => void;
+}) {
   const weeks = useMemo(() => groupByWeek(activities), [activities]);
   const badges = useMemo(() => computeBadges(activities), [activities]);
 
@@ -288,16 +482,31 @@ function TabFeed({ activities, navigate }: { activities: CardioActivity[]; navig
     <div className="space-y-3">
       {weeks.map((week, wi) => (
         <div key={week.weekLabel + week.weekNum} className="space-y-3">
-          <WeekHeader label={week.weekLabel} dist={week.totalDist} time={week.totalTime} count={week.count} />
+          <WeekHeader
+            label={week.weekLabel}
+            dist={week.totalDist}
+            time={week.totalTime}
+            count={week.count}
+          />
           {week.items.map((a, ai) => {
             const isFirst = wi === 0 && ai === 0;
             const isShort = (a.distance_m ?? 0) < 2000 && !isFirst;
             const badge = badges.get(a.id) ?? null;
 
             return isShort ? (
-              <CompactCard key={a.id} activity={a} badge={badge} onClick={() => navigate(`/ausdauer/${a.id}`)} />
+              <CompactCard
+                key={a.id}
+                activity={a}
+                badge={badge}
+                onClick={() => navigate(`/ausdauer/${a.id}`)}
+              />
             ) : (
-              <ActivityCard key={a.id} activity={a} badge={badge} onClick={() => navigate(`/ausdauer/${a.id}`)} />
+              <ActivityCard
+                key={a.id}
+                activity={a}
+                badge={badge}
+                onClick={() => navigate(`/ausdauer/${a.id}`)}
+              />
             );
           })}
         </div>
@@ -331,16 +540,15 @@ export function AusdauerPage() {
   const [activeTab, setActiveTab] = useState<SubTab>("feed");
 
   const fetchData = useCallback(async () => {
-    const [acts, status] = await Promise.all([
-      getCardioActivities(50),
-      getStravaStatus(),
-    ]);
+    const [acts, status] = await Promise.all([getCardioActivities(50), getStravaStatus()]);
     setActivities(acts as CardioActivity[]);
     setStravaConnected(status.connected);
     setLoading(false);
   }, []);
 
-  useEffect(() => { fetchData(); }, [fetchData]);
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   const handleSync = async () => {
     setSyncing(true);
@@ -353,7 +561,9 @@ export function AusdauerPage() {
   };
 
   if (loading) {
-    return <div className="flex min-h-screen items-center justify-center text-neutral-500">Laden...</div>;
+    return (
+      <div className="flex min-h-screen items-center justify-center text-neutral-500">Laden...</div>
+    );
   }
 
   // Not connected empty state
@@ -366,7 +576,8 @@ export function AusdauerPage() {
         <div className="space-y-2">
           <h2 className="text-xl font-bold">Mit Strava verbinden</h2>
           <p className="text-sm text-neutral-500 max-w-[260px]">
-            Verbinde dein Strava-Konto um Lauf-, Rad- und Schwimmaktivitäten automatisch zu synchronisieren.
+            Verbinde dein Strava-Konto um Lauf-, Rad- und Schwimmaktivitäten automatisch zu
+            synchronisieren.
           </p>
         </div>
         <button
@@ -386,7 +597,11 @@ export function AusdauerPage() {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Ausdauer</h1>
         {stravaConnected && (
-          <button onClick={handleSync} disabled={syncing} className="flex items-center gap-1.5 rounded-lg bg-neutral-800 px-3 py-2 text-xs font-medium active:scale-[0.97]">
+          <button
+            onClick={handleSync}
+            disabled={syncing}
+            className="flex items-center gap-1.5 rounded-lg bg-neutral-800 px-3 py-2 text-xs font-medium active:scale-[0.97]"
+          >
             <RefreshCw className={cn("h-3 w-3", syncing && "animate-spin")} />
             {syncing ? "Sync..." : "Sync"}
           </button>
@@ -402,7 +617,9 @@ export function AusdauerPage() {
           <Activity className="h-12 w-12 text-neutral-600" />
           <div>
             <p className="text-sm text-neutral-400">Keine Aktivitäten</p>
-            <p className="text-xs text-neutral-600 mt-1">Tippe auf Sync um Strava-Aktivitäten zu laden</p>
+            <p className="text-xs text-neutral-600 mt-1">
+              Tippe auf Sync um Strava-Aktivitäten zu laden
+            </p>
           </div>
         </div>
       )}
@@ -445,11 +662,20 @@ export function AusdauerPage() {
 
       {/* Activity type picker */}
       {showStartMenu && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm" onClick={() => setShowStartMenu(false)}>
-          <div className="w-full max-w-md rounded-t-2xl bg-neutral-900 p-5 pb-8 safe-area-bottom" onClick={(e) => e.stopPropagation()}>
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm"
+          onClick={() => setShowStartMenu(false)}
+        >
+          <div
+            className="w-full max-w-md rounded-t-2xl bg-neutral-900 p-5 pb-8 safe-area-bottom"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-base font-bold">Training starten</h3>
-              <button onClick={() => setShowStartMenu(false)} className="rounded-lg bg-neutral-800 p-1.5 active:scale-95">
+              <button
+                onClick={() => setShowStartMenu(false)}
+                className="rounded-lg bg-neutral-800 p-1.5 active:scale-95"
+              >
                 <X className="h-4 w-4" />
               </button>
             </div>

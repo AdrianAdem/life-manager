@@ -4,7 +4,12 @@ import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 import { USER_ID } from "@/lib/constants";
 import { Input } from "@/components/ui/input";
-import { getStravaStatus, getStravaAuthUrl, disconnectStrava, syncStravaActivities } from "@/lib/strava-service";
+import {
+  getStravaStatus,
+  getStravaAuthUrl,
+  disconnectStrava,
+  syncStravaActivities,
+} from "@/lib/strava-service";
 import { getGarminData } from "@/lib/garmin-service";
 import { cn } from "@/lib/utils";
 
@@ -16,7 +21,11 @@ export function SettingsPage() {
   const [errorMsg, setErrorMsg] = useState("");
 
   // Strava connection state
-  const [stravaStatus, setStravaStatus] = useState<{ connected: boolean; athlete_name: string | null; last_updated: string | null }>({ connected: false, athlete_name: null, last_updated: null });
+  const [stravaStatus, setStravaStatus] = useState<{
+    connected: boolean;
+    athlete_name: string | null;
+    last_updated: string | null;
+  }>({ connected: false, athlete_name: null, last_updated: null });
   const [stravaLoading, setStravaLoading] = useState(false);
   const [stravaSyncing, setStravaSyncing] = useState(false);
   const [stravaMsg, setStravaMsg] = useState<string | null>(null);
@@ -68,7 +77,10 @@ export function SettingsPage() {
     const fmt = (d: Date) => d.toISOString().split("T")[0];
     getGarminData(fmt(weekAgo), fmt(today))
       .then((entries) => {
-        const latest = entries.map((e) => e.date).sort().at(-1);
+        const latest = entries
+          .map((e) => e.date)
+          .sort()
+          .at(-1);
         if (latest) setGarminLastSync(latest);
       })
       .catch(() => {});
@@ -106,16 +118,19 @@ export function SettingsPage() {
     setStatus("saving");
     setErrorMsg("");
 
-    const { error } = await supabase.from("user_profiles").update({
-      name: name.trim(),
-      height_cm: heightCm || null,
-      birth_date: birthDate || null,
-      calorie_goal: calorieGoal,
-      protein_goal: proteinGoal,
-      carbs_goal: carbsGoal,
-      fat_goal: fatGoal,
-      water_goal_ml: waterGoal,
-    }).eq("id", USER_ID);
+    const { error } = await supabase
+      .from("user_profiles")
+      .update({
+        name: name.trim(),
+        height_cm: heightCm || null,
+        birth_date: birthDate || null,
+        calorie_goal: calorieGoal,
+        protein_goal: proteinGoal,
+        carbs_goal: carbsGoal,
+        fat_goal: fatGoal,
+        water_goal_ml: waterGoal,
+      })
+      .eq("id", USER_ID);
 
     if (error) {
       console.error("Profile save error:", error);
@@ -130,8 +145,15 @@ export function SettingsPage() {
 
   const exportData = async () => {
     const tables = [
-      "daily_todos", "sport_todos", "training_plans", "training_exercises",
-      "training_logs", "nutrition_log", "water_log", "weight_log", "weekly_reports",
+      "daily_todos",
+      "sport_todos",
+      "training_plans",
+      "training_exercises",
+      "training_logs",
+      "nutrition_log",
+      "water_log",
+      "weight_log",
+      "weekly_reports",
     ];
 
     const allData: Record<string, unknown[]> = {};
@@ -158,19 +180,31 @@ export function SettingsPage() {
         <p className="text-sm font-medium text-neutral-400">Profil</p>
         <div className="space-y-1">
           <label className="text-xs text-neutral-500">Name</label>
-          <Input value={name} onChange={(e) => setName(e.target.value)}
-            className="bg-neutral-800 border-none" />
+          <Input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            className="bg-neutral-800 border-none"
+          />
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1">
             <label className="text-xs text-neutral-500">Größe (cm)</label>
-            <Input type="number" value={heightCm || ""} onChange={(e) => setHeightCm(Number(e.target.value))}
-              className="bg-neutral-800 border-none" />
+            <Input
+              type="number"
+              value={heightCm || ""}
+              onChange={(e) => setHeightCm(Number(e.target.value))}
+              className="bg-neutral-800 border-none"
+            />
           </div>
           <div className="space-y-1">
             <label className="text-xs text-neutral-500">Geburtsdatum</label>
-            <Input type="text" value={birthDate} onChange={(e) => setBirthDate(e.target.value)}
-              placeholder="TT.MM.JJJJ" className="bg-neutral-800 border-none" />
+            <Input
+              type="text"
+              value={birthDate}
+              onChange={(e) => setBirthDate(e.target.value)}
+              placeholder="TT.MM.JJJJ"
+              className="bg-neutral-800 border-none"
+            />
           </div>
         </div>
       </div>
@@ -181,29 +215,49 @@ export function SettingsPage() {
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1">
             <label className="text-xs text-neutral-500">Kalorien (kcal)</label>
-            <Input type="number" value={calorieGoal} onChange={(e) => setCalorieGoal(Number(e.target.value))}
-              className="bg-neutral-800 border-none" />
+            <Input
+              type="number"
+              value={calorieGoal}
+              onChange={(e) => setCalorieGoal(Number(e.target.value))}
+              className="bg-neutral-800 border-none"
+            />
           </div>
           <div className="space-y-1">
             <label className="text-xs text-neutral-500">Protein (g)</label>
-            <Input type="number" value={proteinGoal} onChange={(e) => setProteinGoal(Number(e.target.value))}
-              className="bg-neutral-800 border-none" />
+            <Input
+              type="number"
+              value={proteinGoal}
+              onChange={(e) => setProteinGoal(Number(e.target.value))}
+              className="bg-neutral-800 border-none"
+            />
           </div>
           <div className="space-y-1">
             <label className="text-xs text-neutral-500">Kohlenhydrate (g)</label>
-            <Input type="number" value={carbsGoal} onChange={(e) => setCarbsGoal(Number(e.target.value))}
-              className="bg-neutral-800 border-none" />
+            <Input
+              type="number"
+              value={carbsGoal}
+              onChange={(e) => setCarbsGoal(Number(e.target.value))}
+              className="bg-neutral-800 border-none"
+            />
           </div>
           <div className="space-y-1">
             <label className="text-xs text-neutral-500">Fett (g)</label>
-            <Input type="number" value={fatGoal} onChange={(e) => setFatGoal(Number(e.target.value))}
-              className="bg-neutral-800 border-none" />
+            <Input
+              type="number"
+              value={fatGoal}
+              onChange={(e) => setFatGoal(Number(e.target.value))}
+              className="bg-neutral-800 border-none"
+            />
           </div>
         </div>
         <div className="space-y-1">
           <label className="text-xs text-neutral-500">Wasser (ml)</label>
-          <Input type="number" value={waterGoal} onChange={(e) => setWaterGoal(Number(e.target.value))}
-            className="bg-neutral-800 border-none" />
+          <Input
+            type="number"
+            value={waterGoal}
+            onChange={(e) => setWaterGoal(Number(e.target.value))}
+            className="bg-neutral-800 border-none"
+          />
         </div>
       </div>
 
@@ -223,7 +277,13 @@ export function SettingsPage() {
         {status === "saved" && <Check className="h-4 w-4" />}
         {status === "error" && <AlertCircle className="h-4 w-4" />}
         {status === "idle" && <Save className="h-4 w-4" />}
-        {status === "saving" ? "Speichern..." : status === "saved" ? "Gespeichert!" : status === "error" ? "Fehler!" : "Profil speichern"}
+        {status === "saving"
+          ? "Speichern..."
+          : status === "saved"
+            ? "Gespeichert!"
+            : status === "error"
+              ? "Fehler!"
+              : "Profil speichern"}
       </button>
 
       {status === "error" && errorMsg && (
@@ -235,7 +295,14 @@ export function SettingsPage() {
         <p className="text-sm font-medium text-neutral-400">Verbindungen</p>
 
         {stravaMsg && (
-          <p className={cn("text-xs text-center py-1 rounded-lg", stravaMsg.includes("fehlgeschlagen") ? "text-red-400 bg-red-500/10" : "text-green-400 bg-green-500/10")}>
+          <p
+            className={cn(
+              "text-xs text-center py-1 rounded-lg",
+              stravaMsg.includes("fehlgeschlagen")
+                ? "text-red-400 bg-red-500/10"
+                : "text-green-400 bg-green-500/10",
+            )}
+          >
             {stravaMsg}
           </p>
         )}
@@ -255,18 +322,29 @@ export function SettingsPage() {
           </div>
           {stravaStatus.connected ? (
             <div className="flex gap-1.5">
-              <button onClick={handleSyncStrava} disabled={stravaSyncing}
-                className="rounded-lg bg-neutral-700 p-2 active:scale-[0.95]">
-                <RefreshCw className={cn("h-3.5 w-3.5 text-neutral-300", stravaSyncing && "animate-spin")} />
+              <button
+                onClick={handleSyncStrava}
+                disabled={stravaSyncing}
+                className="rounded-lg bg-neutral-700 p-2 active:scale-[0.95]"
+              >
+                <RefreshCw
+                  className={cn("h-3.5 w-3.5 text-neutral-300", stravaSyncing && "animate-spin")}
+                />
               </button>
-              <button onClick={handleDisconnectStrava} disabled={stravaLoading}
-                className="rounded-lg bg-neutral-700 p-2 active:scale-[0.95]">
+              <button
+                onClick={handleDisconnectStrava}
+                disabled={stravaLoading}
+                className="rounded-lg bg-neutral-700 p-2 active:scale-[0.95]"
+              >
                 <Unlink className="h-3.5 w-3.5 text-neutral-300" />
               </button>
             </div>
           ) : (
-            <button onClick={connectStrava} disabled={stravaLoading}
-              className="flex items-center gap-1.5 rounded-lg bg-[#FC4C02] px-3 py-1.5 text-xs font-semibold text-white active:scale-[0.95]">
+            <button
+              onClick={connectStrava}
+              disabled={stravaLoading}
+              className="flex items-center gap-1.5 rounded-lg bg-[#FC4C02] px-3 py-1.5 text-xs font-semibold text-white active:scale-[0.95]"
+            >
               <Link2 className="h-3 w-3" /> Verbinden
             </button>
           )}
@@ -284,13 +362,17 @@ export function SettingsPage() {
                 Letzter Sync: {new Date(garminLastSync).toLocaleDateString("de-DE")}
               </p>
             ) : (
-              <p className="text-xs text-neutral-500">Noch keine Daten · lokales Script ausführen</p>
+              <p className="text-xs text-neutral-500">
+                Noch keine Daten · lokales Script ausführen
+              </p>
             )}
           </div>
-          <span className={cn(
-            "rounded-full px-2 py-1 text-[10px] font-medium",
-            garminLastSync ? "bg-green-500/15 text-green-400" : "bg-neutral-700 text-neutral-400",
-          )}>
+          <span
+            className={cn(
+              "rounded-full px-2 py-1 text-[10px] font-medium",
+              garminLastSync ? "bg-green-500/15 text-green-400" : "bg-neutral-700 text-neutral-400",
+            )}
+          >
             {garminLastSync ? "Aktiv" : "Inaktiv"}
           </span>
         </div>

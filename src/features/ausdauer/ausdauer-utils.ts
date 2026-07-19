@@ -7,15 +7,29 @@ export function getPolyline(a: CardioActivity): string | undefined {
 }
 
 export const activityLabels: Record<string, string> = {
-  run: "Laufen", ride: "Radfahren", swim: "Schwimmen", walk: "Gehen",
-  hike: "Wandern", weight_training: "Krafttraining", workout: "Workout",
-  yoga: "Yoga", crossfit: "CrossFit", rowing: "Rudern",
+  run: "Laufen",
+  ride: "Radfahren",
+  swim: "Schwimmen",
+  walk: "Gehen",
+  hike: "Wandern",
+  weight_training: "Krafttraining",
+  workout: "Workout",
+  yoga: "Yoga",
+  crossfit: "CrossFit",
+  rowing: "Rudern",
 };
 
 export const activityIcons: Record<string, string> = {
-  run: "\u{1F3C3}", ride: "\u{1F6B4}", swim: "\u{1F3CA}", walk: "\u{1F6B6}",
-  hike: "\u{1F97E}", weight_training: "\u{1F3CB}", workout: "\u{1F4AA}",
-  yoga: "\u{1F9D8}", crossfit: "\u{1F3CB}", rowing: "\u{1F6A3}",
+  run: "\u{1F3C3}",
+  ride: "\u{1F6B4}",
+  swim: "\u{1F3CA}",
+  walk: "\u{1F6B6}",
+  hike: "\u{1F97E}",
+  weight_training: "\u{1F3CB}",
+  workout: "\u{1F4AA}",
+  yoga: "\u{1F9D8}",
+  crossfit: "\u{1F3CB}",
+  rowing: "\u{1F6A3}",
 };
 
 export const activityAccent: Record<string, string> = {
@@ -28,14 +42,27 @@ export const activityAccent: Record<string, string> = {
 
 export function decodePolyline(encoded: string): [number, number][] {
   const points: [number, number][] = [];
-  let idx = 0, lat = 0, lng = 0;
+  let idx = 0,
+    lat = 0,
+    lng = 0;
   while (idx < encoded.length) {
-    let b, shift = 0, result = 0;
-    do { b = encoded.charCodeAt(idx++) - 63; result |= (b & 0x1f) << shift; shift += 5; } while (b >= 0x20);
-    lat += (result & 1) ? ~(result >> 1) : (result >> 1);
-    shift = 0; result = 0;
-    do { b = encoded.charCodeAt(idx++) - 63; result |= (b & 0x1f) << shift; shift += 5; } while (b >= 0x20);
-    lng += (result & 1) ? ~(result >> 1) : (result >> 1);
+    let b,
+      shift = 0,
+      result = 0;
+    do {
+      b = encoded.charCodeAt(idx++) - 63;
+      result |= (b & 0x1f) << shift;
+      shift += 5;
+    } while (b >= 0x20);
+    lat += result & 1 ? ~(result >> 1) : result >> 1;
+    shift = 0;
+    result = 0;
+    do {
+      b = encoded.charCodeAt(idx++) - 63;
+      result |= (b & 0x1f) << shift;
+      shift += 5;
+    } while (b >= 0x20);
+    lng += result & 1 ? ~(result >> 1) : result >> 1;
     points.push([lat / 1e5, lng / 1e5]);
   }
   return points;
@@ -140,12 +167,16 @@ export function computeBadges(activities: CardioActivity[]): Map<string, string>
     if (items.length < 2) continue;
     const runs = items.filter((a) => a.activity_type === "run" && a.avg_pace_sec_per_km != null);
     if (runs.length >= 2) {
-      const fastest = runs.reduce((best, a) => (a.avg_pace_sec_per_km! < best.avg_pace_sec_per_km! ? a : best));
+      const fastest = runs.reduce((best, a) =>
+        a.avg_pace_sec_per_km! < best.avg_pace_sec_per_km! ? a : best,
+      );
       badges.set(fastest.id, "Schnellster Lauf");
     }
     const withDist = items.filter((a) => a.distance_m != null && a.distance_m > 0);
     if (withDist.length >= 2) {
-      const longest = withDist.reduce((best, a) => ((a.distance_m ?? 0) > (best.distance_m ?? 0) ? a : best));
+      const longest = withDist.reduce((best, a) =>
+        (a.distance_m ?? 0) > (best.distance_m ?? 0) ? a : best,
+      );
       if (!badges.has(longest.id)) badges.set(longest.id, "Längste Distanz");
     }
   }

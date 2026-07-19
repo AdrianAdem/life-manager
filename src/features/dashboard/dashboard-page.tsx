@@ -1,8 +1,14 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  CheckCircle2, Circle, Dumbbell, Flame, Droplets, Scale,
-  ChevronRight, TrendingUp,
+  CheckCircle2,
+  Circle,
+  Dumbbell,
+  Flame,
+  Droplets,
+  Scale,
+  ChevronRight,
+  TrendingUp,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { USER_ID } from "@/lib/constants";
@@ -17,7 +23,11 @@ export function DashboardPage() {
   const [waterTotal, setWaterTotal] = useState(0);
   const [latestWeight, setLatestWeight] = useState<WeightLog | null>(null);
   const [trainingCount, setTrainingCount] = useState(0);
-  const [routineStats, setRoutineStats] = useState<{ total: number; done: number; items: { name: string; done: boolean }[] }>({ total: 0, done: 0, items: [] });
+  const [routineStats, setRoutineStats] = useState<{
+    total: number;
+    done: number;
+    items: { name: string; done: boolean }[];
+  }>({ total: 0, done: 0, items: [] });
   const [calorieGoal, setCalorieGoal] = useState(2500);
   const [loading, setLoading] = useState(true);
 
@@ -25,10 +35,24 @@ export function DashboardPage() {
     const today = todayString();
 
     const [todosRes, nutritionRes, waterRes, weightRes, trainingRes] = await Promise.all([
-      supabase.from("daily_todos").select("*").eq("user_id", USER_ID).eq("due_date", today).order("created_at", { ascending: false }),
-      supabase.from("nutrition_log").select("calories, protein_g").eq("user_id", USER_ID).eq("date", today),
+      supabase
+        .from("daily_todos")
+        .select("*")
+        .eq("user_id", USER_ID)
+        .eq("due_date", today)
+        .order("created_at", { ascending: false }),
+      supabase
+        .from("nutrition_log")
+        .select("calories, protein_g")
+        .eq("user_id", USER_ID)
+        .eq("date", today),
       supabase.from("water_log").select("amount_ml").eq("user_id", USER_ID).eq("date", today),
-      supabase.from("weight_log").select("*").eq("user_id", USER_ID).order("date", { ascending: false }).limit(1),
+      supabase
+        .from("weight_log")
+        .select("*")
+        .eq("user_id", USER_ID)
+        .order("date", { ascending: false })
+        .limit(1),
       supabase.from("training_logs").select("id").eq("user_id", USER_ID).eq("date", today),
     ]);
 
@@ -36,7 +60,7 @@ export function DashboardPage() {
     if (nutritionRes.data) {
       const totals = (nutritionRes.data as NutritionLog[]).reduce(
         (acc, n) => ({ calories: acc.calories + n.calories, protein: acc.protein + n.protein_g }),
-        { calories: 0, protein: 0 }
+        { calories: 0, protein: 0 },
       );
       setNutritionTotal(totals);
     }
@@ -47,23 +71,36 @@ export function DashboardPage() {
     if (trainingRes.data) setTrainingCount(trainingRes.data.length);
 
     const { data: profile } = await supabase
-      .from("user_profiles").select("calorie_goal").eq("id", USER_ID).single();
+      .from("user_profiles")
+      .select("calorie_goal")
+      .eq("id", USER_ID)
+      .single();
     if (profile?.calorie_goal) setCalorieGoal(profile.calorie_goal);
 
     // Fetch routines
     const { data: routinesData } = await supabase
-      .from("routines").select("id, name, area, weekdays, start_date, end_date").eq("user_id", USER_ID).eq("is_active", true);
+      .from("routines")
+      .select("id, name, area, weekdays, start_date, end_date")
+      .eq("user_id", USER_ID)
+      .eq("is_active", true);
     if (routinesData) {
       const jsDay = new Date().getDay();
       const weekday = jsDay === 0 ? 6 : jsDay - 1;
       const todayRoutines = (routinesData as Routine[]).filter(
-        (r) => (!r.weekdays || r.weekdays.length === 0 || r.weekdays.includes(weekday))
-          && isRoutineActiveToday(r.start_date, r.end_date)
+        (r) =>
+          (!r.weekdays || r.weekdays.length === 0 || r.weekdays.includes(weekday)) &&
+          isRoutineActiveToday(r.start_date, r.end_date),
       );
       const routineIds = todayRoutines.map((r) => r.id);
-      const { data: allLogs } = routineIds.length > 0
-        ? await supabase.from("routine_logs").select("routine_id, completed").in("routine_id", routineIds).eq("user_id", USER_ID).eq("date", today)
-        : { data: [] };
+      const { data: allLogs } =
+        routineIds.length > 0
+          ? await supabase
+              .from("routine_logs")
+              .select("routine_id, completed")
+              .in("routine_id", routineIds)
+              .eq("user_id", USER_ID)
+              .eq("date", today)
+          : { data: [] };
       const logMap = new Map((allLogs ?? []).map((l) => [l.routine_id, l.completed]));
       const items = todayRoutines.map((r) => ({
         name: r.name,
@@ -79,10 +116,12 @@ export function DashboardPage() {
     setLoading(false);
   }, []);
 
-  useEffect(() => { fetchDashboard(); }, [fetchDashboard]);
+  useEffect(() => {
+    fetchDashboard();
+  }, [fetchDashboard]);
 
   const toggleTodo = async (todo: DailyTodo) => {
-    setTodos((prev) => prev.map((t) => t.id === todo.id ? { ...t, completed: !t.completed } : t));
+    setTodos((prev) => prev.map((t) => (t.id === todo.id ? { ...t, completed: !t.completed } : t)));
     await supabase.from("daily_todos").update({ completed: !todo.completed }).eq("id", todo.id);
   };
 
@@ -91,7 +130,9 @@ export function DashboardPage() {
   const todosPct = todosTotal > 0 ? Math.round((todosCompleted / todosTotal) * 100) : 0;
 
   if (loading) {
-    return <div className="flex min-h-screen items-center justify-center text-neutral-500">Laden...</div>;
+    return (
+      <div className="flex min-h-screen items-center justify-center text-neutral-500">Laden...</div>
+    );
   }
 
   return (
@@ -99,7 +140,11 @@ export function DashboardPage() {
       {/* Header */}
       <div>
         <p className="text-sm text-neutral-500">
-          {new Date().toLocaleDateString("de-DE", { weekday: "long", day: "numeric", month: "long" })}
+          {new Date().toLocaleDateString("de-DE", {
+            weekday: "long",
+            day: "numeric",
+            month: "long",
+          })}
         </p>
         <h1 className="text-2xl font-bold tracking-tight">Hey Adrian</h1>
       </div>
@@ -131,7 +176,11 @@ export function DashboardPage() {
           icon={<Scale className="h-5 w-5 text-purple-400" />}
           label="Gewicht"
           value={latestWeight ? `${latestWeight.weight_kg} kg` : "—"}
-          sub={latestWeight?.body_fat_percent ? `${latestWeight.body_fat_percent}% KFA` : "kein Eintrag"}
+          sub={
+            latestWeight?.body_fat_percent
+              ? `${latestWeight.body_fat_percent}% KFA`
+              : "kein Eintrag"
+          }
           onClick={() => navigate("/sport/gewicht")}
         />
       </div>
@@ -141,16 +190,20 @@ export function DashboardPage() {
         <div>
           <div className="mb-3 flex items-center justify-between">
             <h2 className="text-lg font-bold">Routinen</h2>
-            <span className="text-xs text-neutral-500">{routineStats.done}/{routineStats.total} erledigt</span>
+            <span className="text-xs text-neutral-500">
+              {routineStats.done}/{routineStats.total} erledigt
+            </span>
           </div>
           <div className="space-y-2">
             {routineStats.items.map((r, i) => (
-              <button key={i}
+              <button
+                key={i}
                 onClick={() => navigate("/sport/todos")}
                 className={cn(
                   "flex w-full items-center gap-3 rounded-xl bg-card p-3 text-left transition-all active:scale-[0.98]",
-                  r.done && "opacity-50"
-                )}>
+                  r.done && "opacity-50",
+                )}
+              >
                 {r.done ? (
                   <CheckCircle2 className="h-5 w-5 shrink-0 text-green-500" />
                 ) : (
@@ -179,7 +232,9 @@ export function DashboardPage() {
         {todosTotal > 0 && (
           <div className="mb-3">
             <div className="mb-1 flex justify-between text-xs text-neutral-500">
-              <span>{todosCompleted}/{todosTotal} erledigt</span>
+              <span>
+                {todosCompleted}/{todosTotal} erledigt
+              </span>
               <span>{todosPct}%</span>
             </div>
             <div className="h-2 overflow-hidden rounded-full bg-neutral-800">
@@ -203,7 +258,7 @@ export function DashboardPage() {
                 onClick={() => toggleTodo(todo)}
                 className={cn(
                   "flex w-full items-center gap-3 rounded-xl bg-card p-3 text-left transition-all active:scale-[0.98]",
-                  todo.completed && "opacity-50"
+                  todo.completed && "opacity-50",
                 )}
               >
                 {todo.completed ? (
@@ -227,16 +282,34 @@ export function DashboardPage() {
       <div>
         <h2 className="mb-3 text-lg font-bold">Schnellzugriff</h2>
         <div className="grid grid-cols-3 gap-2">
-          <QuickAction label="Training starten" icon={<Dumbbell className="h-5 w-5" />} onClick={() => navigate("/sport/loggen")} />
-          <QuickAction label="Essen tracken" icon={<Flame className="h-5 w-5" />} onClick={() => navigate("/ernaehrung")} />
-          <QuickAction label="Fortschritt" icon={<TrendingUp className="h-5 w-5" />} onClick={() => navigate("/sport/statistiken")} />
+          <QuickAction
+            label="Training starten"
+            icon={<Dumbbell className="h-5 w-5" />}
+            onClick={() => navigate("/sport/loggen")}
+          />
+          <QuickAction
+            label="Essen tracken"
+            icon={<Flame className="h-5 w-5" />}
+            onClick={() => navigate("/ernaehrung")}
+          />
+          <QuickAction
+            label="Fortschritt"
+            icon={<TrendingUp className="h-5 w-5" />}
+            onClick={() => navigate("/sport/statistiken")}
+          />
         </div>
       </div>
     </div>
   );
 }
 
-function StatCard({ icon, label, value, sub, onClick }: {
+function StatCard({
+  icon,
+  label,
+  value,
+  sub,
+  onClick,
+}: {
   icon: React.ReactNode;
   label: string;
   value: string;
@@ -258,7 +331,11 @@ function StatCard({ icon, label, value, sub, onClick }: {
   );
 }
 
-function QuickAction({ label, icon, onClick }: {
+function QuickAction({
+  label,
+  icon,
+  onClick,
+}: {
   label: string;
   icon: React.ReactNode;
   onClick: () => void;

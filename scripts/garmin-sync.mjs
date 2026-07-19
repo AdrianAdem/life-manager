@@ -72,12 +72,21 @@ const BROWSER_UA =
 const MOBILE_UA = "com.garmin.android.apps.connectmobile";
 
 function pct(s) {
-  return encodeURIComponent(s).replace(/[!'()*]/g, (c) => "%" + c.charCodeAt(0).toString(16).toUpperCase());
+  return encodeURIComponent(s).replace(
+    /[!'()*]/g,
+    (c) => "%" + c.charCodeAt(0).toString(16).toUpperCase(),
+  );
 }
 
 async function hmacSha1(key, base) {
   const enc = new TextEncoder();
-  const k = await crypto.subtle.importKey("raw", enc.encode(key), { name: "HMAC", hash: "SHA-1" }, false, ["sign"]);
+  const k = await crypto.subtle.importKey(
+    "raw",
+    enc.encode(key),
+    { name: "HMAC", hash: "SHA-1" },
+    false,
+    ["sign"],
+  );
   const sig = await crypto.subtle.sign("HMAC", k, enc.encode(base));
   return Buffer.from(new Uint8Array(sig)).toString("base64");
 }
@@ -92,10 +101,19 @@ async function oauth1Header(method, baseUrl, reqParams, cc, token = "", tokenSec
   };
   if (token) oauth.oauth_token = token;
   const all = { ...reqParams, ...oauth };
-  const paramStr = Object.keys(all).sort().map((k) => `${pct(k)}=${pct(all[k])}`).join("&");
+  const paramStr = Object.keys(all)
+    .sort()
+    .map((k) => `${pct(k)}=${pct(all[k])}`)
+    .join("&");
   const base = `${method.toUpperCase()}&${pct(baseUrl)}&${pct(paramStr)}`;
   oauth.oauth_signature = await hmacSha1(`${pct(cc.consumer_secret)}&${pct(tokenSecret)}`, base);
-  return "OAuth " + Object.keys(oauth).sort().map((k) => `${pct(k)}="${pct(oauth[k])}"`).join(", ");
+  return (
+    "OAuth " +
+    Object.keys(oauth)
+      .sort()
+      .map((k) => `${pct(k)}="${pct(oauth[k])}"`)
+      .join(", ")
+  );
 }
 
 // OAuth1 -> OAuth2 token exchange. Used for both the initial login and for
@@ -105,7 +123,11 @@ async function exchangeOAuth2(cc, oauth1Token, oauth1Secret) {
   const exHeader = await oauth1Header("POST", exUrl, {}, cc, oauth1Token, oauth1Secret);
   const res = await fetch(exUrl, {
     method: "POST",
-    headers: { Authorization: exHeader, "User-Agent": MOBILE_UA, "Content-Type": "application/x-www-form-urlencoded" },
+    headers: {
+      Authorization: exHeader,
+      "User-Agent": MOBILE_UA,
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
     body: "",
   });
   if (!res.ok) throw new Error(`OAuth2-Exchange fehlgeschlagen: ${res.status} ${await res.text()}`);
@@ -188,19 +210,35 @@ async function fullLogin(cc) {
   await res.text();
 
   const signinUrl = `${SSO}/signin?${new URLSearchParams({
-    id: "gauth-widget", embedWidget: "true", gauthHost: SSO_EMBED,
-    service: SSO_EMBED, source: SSO_EMBED,
-    redirectAfterAccountLoginUrl: SSO_EMBED, redirectAfterAccountCreationUrl: SSO_EMBED,
+    id: "gauth-widget",
+    embedWidget: "true",
+    gauthHost: SSO_EMBED,
+    service: SSO_EMBED,
+    source: SSO_EMBED,
+    redirectAfterAccountLoginUrl: SSO_EMBED,
+    redirectAfterAccountCreationUrl: SSO_EMBED,
   })}`;
-  res = await fetch(signinUrl, { headers: { "User-Agent": BROWSER_UA, Referer: embedUrl, Cookie: cookieHeader() } });
+  res = await fetch(signinUrl, {
+    headers: { "User-Agent": BROWSER_UA, Referer: embedUrl, Cookie: cookieHeader() },
+  });
   absorb(res);
   const csrf = (await res.text()).match(/name="_csrf"\s+value="([^"]+)"/)?.[1];
   if (!csrf) throw new Error(`Login-Seite blockiert (status ${res.status}) — kein CSRF`);
 
   res = await fetch(signinUrl, {
     method: "POST",
-    headers: { "User-Agent": BROWSER_UA, "Content-Type": "application/x-www-form-urlencoded", Referer: signinUrl, Cookie: cookieHeader() },
-    body: new URLSearchParams({ username: GARMIN_EMAIL, password: GARMIN_PASSWORD, embed: "true", _csrf: csrf }),
+    headers: {
+      "User-Agent": BROWSER_UA,
+      "Content-Type": "application/x-www-form-urlencoded",
+      Referer: signinUrl,
+      Cookie: cookieHeader(),
+    },
+    body: new URLSearchParams({
+      username: GARMIN_EMAIL,
+      password: GARMIN_PASSWORD,
+      embed: "true",
+      _csrf: csrf,
+    }),
   });
   absorb(res);
   const ticket = (await res.text()).match(/embed\?ticket=([^"]+)"/)?.[1];
@@ -222,7 +260,12 @@ async function fullLogin(cc) {
 // ── Garmin data fetch ───────────────────────────────────────────────
 async function garminGet(path, token) {
   const res = await fetch(`${CONNECT_BASE}/${path}`, {
-    headers: { Authorization: `Bearer ${token}`, "User-Agent": MOBILE_UA, Accept: "application/json", "DI-Backend": "connectapi.garmin.com" },
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "User-Agent": MOBILE_UA,
+      Accept: "application/json",
+      "DI-Backend": "connectapi.garmin.com",
+    },
   });
   if (!res.ok) throw new Error(`${path.split("?")[0]}: ${res.status}`);
   const body = await res.text();
@@ -242,34 +285,60 @@ function buildResult(date, [dailyStats, sleep, heartRate, hrv, stress, vo2max]) 
   if (dailyStats.status === "fulfilled" && dailyStats.value) {
     const d = dailyStats.value;
     result.daily = {
-      steps: d.totalSteps, distance_m: d.totalDistanceMeters,
-      calories_total: d.totalKilocalories, calories_active: d.activeKilocalories, calories_bmr: d.bmrKilocalories,
-      floors_climbed: d.floorsAscended, resting_hr: d.restingHeartRate, min_hr: d.minHeartRate, max_hr: d.maxHeartRate,
-      avg_stress: d.averageStressLevel, max_stress: d.maxStressLevel,
-      body_battery_high: d.bodyBatteryHighestValue, body_battery_low: d.bodyBatteryLowestValue,
-      moderate_intensity_min: d.moderateIntensityMinutes, vigorous_intensity_min: d.vigorousIntensityMinutes,
+      steps: d.totalSteps,
+      distance_m: d.totalDistanceMeters,
+      calories_total: d.totalKilocalories,
+      calories_active: d.activeKilocalories,
+      calories_bmr: d.bmrKilocalories,
+      floors_climbed: d.floorsAscended,
+      resting_hr: d.restingHeartRate,
+      min_hr: d.minHeartRate,
+      max_hr: d.maxHeartRate,
+      avg_stress: d.averageStressLevel,
+      max_stress: d.maxStressLevel,
+      body_battery_high: d.bodyBatteryHighestValue,
+      body_battery_low: d.bodyBatteryLowestValue,
+      moderate_intensity_min: d.moderateIntensityMinutes,
+      vigorous_intensity_min: d.vigorousIntensityMinutes,
     };
   }
   if (sleep.status === "fulfilled") {
     const s = sleep.value?.dailySleepDTO;
-    if (s) result.sleep = {
-      start: s.sleepStartTimestampLocal, end: s.sleepEndTimestampLocal, duration_sec: s.sleepTimeSeconds,
-      deep_sec: s.deepSleepSeconds, light_sec: s.lightSleepSeconds, rem_sec: s.remSleepSeconds, awake_sec: s.awakeSleepSeconds,
-      score: s.sleepScores?.overall?.value, score_quality: s.sleepScores?.qualityOfSleep?.qualifierKey,
-      avg_spo2: s.averageSpO2Value, avg_respiration: s.averageRespirationValue,
-    };
+    if (s)
+      result.sleep = {
+        start: s.sleepStartTimestampLocal,
+        end: s.sleepEndTimestampLocal,
+        duration_sec: s.sleepTimeSeconds,
+        deep_sec: s.deepSleepSeconds,
+        light_sec: s.lightSleepSeconds,
+        rem_sec: s.remSleepSeconds,
+        awake_sec: s.awakeSleepSeconds,
+        score: s.sleepScores?.overall?.value,
+        score_quality: s.sleepScores?.qualityOfSleep?.qualifierKey,
+        avg_spo2: s.averageSpO2Value,
+        avg_respiration: s.averageRespirationValue,
+      };
   }
   if (heartRate.status === "fulfilled" && heartRate.value) {
     const hr = heartRate.value;
-    result.heart_rate = { resting: hr.restingHeartRate, min: hr.minHeartRate, max: hr.maxHeartRate };
+    result.heart_rate = {
+      resting: hr.restingHeartRate,
+      min: hr.minHeartRate,
+      max: hr.maxHeartRate,
+    };
   }
   if (hrv.status === "fulfilled") {
     const h = hrv.value?.hrvSummary ?? hrv.value;
-    if (h) result.hrv = {
-      weekly_avg: h.weeklyAvg, last_night: h.lastNightAvg, last_night_5min_high: h.lastNight5MinHigh,
-      baseline_low: h.baseline?.lowUpper, baseline_balanced_low: h.baseline?.balancedLow, baseline_balanced_upper: h.baseline?.balancedUpper,
-      status: h.status,
-    };
+    if (h)
+      result.hrv = {
+        weekly_avg: h.weeklyAvg,
+        last_night: h.lastNightAvg,
+        last_night_5min_high: h.lastNight5MinHigh,
+        baseline_low: h.baseline?.lowUpper,
+        baseline_balanced_low: h.baseline?.balancedLow,
+        baseline_balanced_upper: h.baseline?.balancedUpper,
+        status: h.status,
+      };
   }
   // Stress detail endpoint only carries avg/max; the duration breakdown lives
   // in the daily summary, so source durations from there.
@@ -287,12 +356,13 @@ function buildResult(date, [dailyStats, sleep, heartRate, hrv, stress, vo2max]) 
   if (vo2max.status === "fulfilled") {
     const m = Array.isArray(vo2max.value) ? vo2max.value[0] : vo2max.value;
     const g = m?.generic;
-    if (g) result.vo2max = {
-      generic: g.vo2MaxPreciseValue ?? g.vo2MaxValue,
-      running: m.running?.vo2MaxPreciseValue ?? m.running?.vo2MaxValue,
-      cycling: m.cycling?.vo2MaxPreciseValue ?? m.cycling?.vo2MaxValue,
-      fitness_age: g.fitnessAge,
-    };
+    if (g)
+      result.vo2max = {
+        generic: g.vo2MaxPreciseValue ?? g.vo2MaxValue,
+        running: m.running?.vo2MaxPreciseValue ?? m.running?.vo2MaxValue,
+        cycling: m.cycling?.vo2MaxPreciseValue ?? m.cycling?.vo2MaxValue,
+        fitness_age: g.fitnessAge,
+      };
   }
   return result;
 }
@@ -302,8 +372,10 @@ async function upsert(date, data) {
   const res = await fetch(`${SUPABASE_URL}/rest/v1/garmin_health_data?on_conflict=user_id,date`, {
     method: "POST",
     headers: {
-      apikey: SERVICE_ROLE, Authorization: `Bearer ${SERVICE_ROLE}`,
-      "Content-Type": "application/json", Prefer: "resolution=merge-duplicates",
+      apikey: SERVICE_ROLE,
+      Authorization: `Bearer ${SERVICE_ROLE}`,
+      "Content-Type": "application/json",
+      Prefer: "resolution=merge-duplicates",
     },
     body: JSON.stringify({ user_id: USER_ID, date, data, updated_at: new Date().toISOString() }),
   });
@@ -329,8 +401,14 @@ async function main() {
     const date = fmt(d);
     try {
       const parts = await Promise.allSettled([
-        garminGet(`usersummary-service/usersummary/daily/${displayName}?calendarDate=${date}`, token),
-        garminGet(`wellness-service/wellness/dailySleepData/${displayName}?date=${date}&nonSleepBufferMinutes=60`, token),
+        garminGet(
+          `usersummary-service/usersummary/daily/${displayName}?calendarDate=${date}`,
+          token,
+        ),
+        garminGet(
+          `wellness-service/wellness/dailySleepData/${displayName}?date=${date}&nonSleepBufferMinutes=60`,
+          token,
+        ),
         garminGet(`wellness-service/wellness/dailyHeartRate/${displayName}?date=${date}`, token),
         garminGet(`hrv-service/hrv/${date}`, token),
         garminGet(`wellness-service/wellness/dailyStress/${date}`, token),

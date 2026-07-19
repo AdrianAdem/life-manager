@@ -62,12 +62,17 @@ async function foodFetch(endpoint: string, body: Record<string, unknown>) {
 }
 
 // Layer 1: Barcode scan
-export async function lookupBarcode(barcode: string): Promise<{ found: boolean; food?: FatSecretFood }> {
+export async function lookupBarcode(
+  barcode: string,
+): Promise<{ found: boolean; food?: FatSecretFood }> {
   return foodFetch("barcode", { barcode });
 }
 
 // Layer 2: Text search
-export async function searchFoods(query: string, page = 0): Promise<{ results: FoodSearchResult[]; totalResults: number }> {
+export async function searchFoods(
+  query: string,
+  page = 0,
+): Promise<{ results: FoodSearchResult[]; totalResults: number }> {
   return foodFetch("search", { query, page });
 }
 

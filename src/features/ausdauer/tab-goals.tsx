@@ -10,18 +10,40 @@ interface Goal {
   target_value: number;
 }
 
-function ProgressRing({ progress, size = 80, stroke = 6, color }: { progress: number; size?: number; stroke?: number; color: string }) {
+function ProgressRing({
+  progress,
+  size = 80,
+  stroke = 6,
+  color,
+}: {
+  progress: number;
+  size?: number;
+  stroke?: number;
+  color: string;
+}) {
   const radius = (size - stroke) / 2;
   const circ = 2 * Math.PI * radius;
   const offset = circ - Math.min(progress, 1) * circ;
 
   return (
     <svg width={size} height={size} className="-rotate-90">
-      <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke="#222" strokeWidth={stroke} />
       <circle
-        cx={size / 2} cy={size / 2} r={radius}
-        fill="none" stroke={color} strokeWidth={stroke}
-        strokeDasharray={circ} strokeDashoffset={offset}
+        cx={size / 2}
+        cy={size / 2}
+        r={radius}
+        fill="none"
+        stroke="#222"
+        strokeWidth={stroke}
+      />
+      <circle
+        cx={size / 2}
+        cy={size / 2}
+        r={radius}
+        fill="none"
+        stroke={color}
+        strokeWidth={stroke}
+        strokeDasharray={circ}
+        strokeDashoffset={offset}
         strokeLinecap="round"
         className="transition-all duration-500"
       />
@@ -44,12 +66,13 @@ function computeStreak(activities: CardioActivity[], weeklyTarget: number): numb
     const we = new Date(ws);
     we.setDate(we.getDate() + 7);
 
-    const weekKm = activities
-      .filter((a) => {
-        const d = new Date(a.start_date);
-        return d >= ws && d < we;
-      })
-      .reduce((s, a) => s + (a.distance_m ?? 0), 0) / 1000;
+    const weekKm =
+      activities
+        .filter((a) => {
+          const d = new Date(a.start_date);
+          return d >= ws && d < we;
+        })
+        .reduce((s, a) => s + (a.distance_m ?? 0), 0) / 1000;
 
     if (weekKm >= weeklyTarget) {
       streak++;
@@ -79,12 +102,15 @@ export function TabGoals({ activities }: { activities: CardioActivity[] }) {
   }, []);
 
   const saveGoal = async (goalType: string, value: number) => {
-    await supabase.from("cardio_goals").upsert({
-      user_id: USER_ID,
-      goal_type: goalType,
-      target_value: value,
-      updated_at: new Date().toISOString(),
-    }, { onConflict: "user_id,goal_type" });
+    await supabase.from("cardio_goals").upsert(
+      {
+        user_id: USER_ID,
+        goal_type: goalType,
+        target_value: value,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "user_id,goal_type" },
+    );
 
     setGoals((prev) => {
       const filtered = prev.filter((g) => g.goal_type !== goalType);
@@ -97,7 +123,8 @@ export function TabGoals({ activities }: { activities: CardioActivity[] }) {
     const now = new Date();
     const ws = getWeekStart(now);
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-    let wk = 0, mk = 0;
+    let wk = 0,
+      mk = 0;
     for (const a of activities) {
       const d = new Date(a.start_date);
       const dist = a.distance_m ?? 0;
@@ -113,8 +140,22 @@ export function TabGoals({ activities }: { activities: CardioActivity[] }) {
   const streak = useMemo(() => computeStreak(activities, weeklyGoal), [activities, weeklyGoal]);
 
   const goalItems = [
-    { type: "weekly_km", label: "Wochenziel", current: weekKm, target: weeklyGoal, unit: "km", color: "#FC4C02" },
-    { type: "monthly_km", label: "Monatsziel", current: monthKm, target: monthlyGoal, unit: "km", color: "#3B82F6" },
+    {
+      type: "weekly_km",
+      label: "Wochenziel",
+      current: weekKm,
+      target: weeklyGoal,
+      unit: "km",
+      color: "#FC4C02",
+    },
+    {
+      type: "monthly_km",
+      label: "Monatsziel",
+      current: monthKm,
+      target: monthlyGoal,
+      unit: "km",
+      color: "#3B82F6",
+    },
   ];
 
   return (
@@ -124,7 +165,9 @@ export function TabGoals({ activities }: { activities: CardioActivity[] }) {
         <div className="flex items-center gap-3 rounded-xl bg-[#1A1A1A] px-4 py-3">
           <Flame className="h-5 w-5 text-orange-400" />
           <div>
-            <p className="text-sm font-bold">{streak} {streak === 1 ? "Woche" : "Wochen"} in Folge</p>
+            <p className="text-sm font-bold">
+              {streak} {streak === 1 ? "Woche" : "Wochen"} in Folge
+            </p>
             <p className="text-[10px] text-neutral-500">Wochenziel erreicht</p>
           </div>
         </div>
@@ -154,15 +197,25 @@ export function TabGoals({ activities }: { activities: CardioActivity[] }) {
               {/* Info */}
               <div className="flex-1">
                 <p className="text-xs font-medium text-neutral-400">{g.label}</p>
-                <p className="text-lg font-bold">{g.current.toFixed(1)} <span className="text-sm text-neutral-500">/ {g.target > 0 ? g.target : "–"} {g.unit}</span></p>
+                <p className="text-lg font-bold">
+                  {g.current.toFixed(1)}{" "}
+                  <span className="text-sm text-neutral-500">
+                    / {g.target > 0 ? g.target : "–"} {g.unit}
+                  </span>
+                </p>
                 {g.target > 0 && !done && (
-                  <p className="text-[10px] text-neutral-600">Noch {(g.target - g.current).toFixed(1)} {g.unit}</p>
+                  <p className="text-[10px] text-neutral-600">
+                    Noch {(g.target - g.current).toFixed(1)} {g.unit}
+                  </p>
                 )}
               </div>
 
               {/* Edit button */}
               <button
-                onClick={() => { setEditing(isEditing ? null : g.type); setEditValue(String(g.target || "")); }}
+                onClick={() => {
+                  setEditing(isEditing ? null : g.type);
+                  setEditValue(String(g.target || ""));
+                }}
                 className="rounded-lg bg-neutral-800 px-2.5 py-1.5 text-[10px] font-medium text-neutral-400 active:scale-95"
               >
                 <Target className="h-3 w-3" />

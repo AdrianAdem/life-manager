@@ -5,7 +5,15 @@ import { USER_ID } from "@/lib/constants";
 import { todayString, isRoutineActiveToday } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { SwipeRow } from "@/components/ui/swipe-row";
-import type { SportTodo, DailyTodo, Routine, RoutineItem, RoutineLog, TodoPriority, RoutineCategory } from "@/types/database";
+import type {
+  SportTodo,
+  DailyTodo,
+  Routine,
+  RoutineItem,
+  RoutineLog,
+  TodoPriority,
+  RoutineCategory,
+} from "@/types/database";
 
 const categoryColors: Record<RoutineCategory, string> = {
   kraft: "bg-green-500",
@@ -46,9 +54,9 @@ export function SportTodosPage() {
   const [editingRoutineId, setEditingRoutineId] = useState<string | null>(null);
   const [newRoutineName, setNewRoutineName] = useState("");
   const [newRoutineCategory, setNewRoutineCategory] = useState<RoutineCategory>("mobility");
-  const [newRoutineItems, setNewRoutineItems] = useState<{ id?: string; name: string; sets?: number; reps?: number; duration_sec?: number }[]>([
-    { name: "" },
-  ]);
+  const [newRoutineItems, setNewRoutineItems] = useState<
+    { id?: string; name: string; sets?: number; reps?: number; duration_sec?: number }[]
+  >([{ name: "" }]);
   const [newRoutineWeekdays, setNewRoutineWeekdays] = useState<number[]>([]);
   const [newRoutineStartDate, setNewRoutineStartDate] = useState("");
   const [newRoutineEndDate, setNewRoutineEndDate] = useState("");
@@ -61,14 +69,35 @@ export function SportTodosPage() {
   const fetchData = useCallback(async () => {
     const today = todayString();
     const [sportTodoRes, dailyTodoRes, routineRes] = await Promise.all([
-      supabase.from("sport_todos").select("*").eq("user_id", USER_ID).eq("due_date", today).order("created_at", { ascending: false }),
-      supabase.from("daily_todos").select("*").eq("user_id", USER_ID).eq("due_date", today).order("created_at", { ascending: false }),
-      supabase.from("routines").select("*").eq("user_id", USER_ID).eq("is_active", true).order("created_at"),
+      supabase
+        .from("sport_todos")
+        .select("*")
+        .eq("user_id", USER_ID)
+        .eq("due_date", today)
+        .order("created_at", { ascending: false }),
+      supabase
+        .from("daily_todos")
+        .select("*")
+        .eq("user_id", USER_ID)
+        .eq("due_date", today)
+        .order("created_at", { ascending: false }),
+      supabase
+        .from("routines")
+        .select("*")
+        .eq("user_id", USER_ID)
+        .eq("is_active", true)
+        .order("created_at"),
     ]);
 
     const merged: UnifiedTodo[] = [
-      ...((sportTodoRes.data ?? []) as SportTodo[]).map((t) => ({ ...t, source: "sport" as const })),
-      ...((dailyTodoRes.data ?? []) as DailyTodo[]).map((t) => ({ ...t, source: "daily" as const })),
+      ...((sportTodoRes.data ?? []) as SportTodo[]).map((t) => ({
+        ...t,
+        source: "sport" as const,
+      })),
+      ...((dailyTodoRes.data ?? []) as DailyTodo[]).map((t) => ({
+        ...t,
+        source: "daily" as const,
+      })),
     ];
     setTodos(merged);
 
@@ -76,14 +105,24 @@ export function SportTodosPage() {
       const jsDay = new Date().getDay();
       const weekday = jsDay === 0 ? 6 : jsDay - 1;
       const routinesData = (routineRes.data as Routine[]).filter(
-        (r) => (!r.weekdays || r.weekdays.length === 0 || r.weekdays.includes(weekday))
-          && isRoutineActiveToday(r.start_date, r.end_date)
+        (r) =>
+          (!r.weekdays || r.weekdays.length === 0 || r.weekdays.includes(weekday)) &&
+          isRoutineActiveToday(r.start_date, r.end_date),
       );
       const routineIds = routinesData.map((r) => r.id);
       if (routineIds.length > 0) {
         const [itemsRes, logsRes] = await Promise.all([
-          supabase.from("routine_items").select("*").in("routine_id", routineIds).order("order_index"),
-          supabase.from("routine_logs").select("*").in("routine_id", routineIds).eq("user_id", USER_ID).eq("date", today),
+          supabase
+            .from("routine_items")
+            .select("*")
+            .in("routine_id", routineIds)
+            .order("order_index"),
+          supabase
+            .from("routine_logs")
+            .select("*")
+            .in("routine_id", routineIds)
+            .eq("user_id", USER_ID)
+            .eq("date", today),
         ]);
         const itemsByRoutine = new Map<string, RoutineItem[]>();
         for (const item of (itemsRes.data ?? []) as RoutineItem[]) {
@@ -108,7 +147,9 @@ export function SportTodosPage() {
     setLoading(false);
   }, []);
 
-  useEffect(() => { fetchData(); }, [fetchData]);
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   // ── Routine handlers ──
 
@@ -124,18 +165,34 @@ export function SportTodosPage() {
     setRoutines((prev) =>
       prev.map((r) =>
         r.id === routine.id
-          ? { ...r, log: { ...(r.log ?? { id: "", routine_id: r.id, user_id: USER_ID, date: today, created_at: "" }), completed_items: newCompleted, completed: allDone } }
-          : r
-      )
+          ? {
+              ...r,
+              log: {
+                ...(r.log ?? {
+                  id: "",
+                  routine_id: r.id,
+                  user_id: USER_ID,
+                  date: today,
+                  created_at: "",
+                }),
+                completed_items: newCompleted,
+                completed: allDone,
+              },
+            }
+          : r,
+      ),
     );
 
-    await supabase.from("routine_logs").upsert({
-      routine_id: routine.id,
-      user_id: USER_ID,
-      date: today,
-      completed_items: newCompleted,
-      completed: allDone,
-    }, { onConflict: "routine_id,user_id,date" });
+    await supabase.from("routine_logs").upsert(
+      {
+        routine_id: routine.id,
+        user_id: USER_ID,
+        date: today,
+        completed_items: newCompleted,
+        completed: allDone,
+      },
+      { onConflict: "routine_id,user_id,date" },
+    );
   };
 
   const resetRoutineForm = () => {
@@ -159,8 +216,11 @@ export function SportTodosPage() {
     setNewRoutineItems(
       routine.items.length > 0
         ? routine.items.map((i) => ({
-            id: i.id, name: i.name,
-            sets: i.sets ?? undefined, reps: i.reps ?? undefined, duration_sec: i.duration_sec ?? undefined,
+            id: i.id,
+            name: i.name,
+            sets: i.sets ?? undefined,
+            reps: i.reps ?? undefined,
+            duration_sec: i.duration_sec ?? undefined,
           }))
         : [{ name: "" }],
     );
@@ -173,7 +233,8 @@ export function SportTodosPage() {
     if (validItems.length === 0) return;
 
     const routineFields = {
-      name: newRoutineName.trim(), category: newRoutineCategory,
+      name: newRoutineName.trim(),
+      category: newRoutineCategory,
       weekdays: newRoutineWeekdays.length > 0 ? newRoutineWeekdays : null,
       start_date: newRoutineStartDate || null,
       end_date: newRoutineEndDate || null,
@@ -192,8 +253,11 @@ export function SportTodosPage() {
       await Promise.all(
         validItems.map((item, idx) => {
           const row = {
-            routine_id: editingRoutineId, name: item.name.trim(),
-            sets: item.sets || null, reps: item.reps || null, duration_sec: item.duration_sec || null,
+            routine_id: editingRoutineId,
+            name: item.name.trim(),
+            sets: item.sets || null,
+            reps: item.reps || null,
+            duration_sec: item.duration_sec || null,
             order_index: idx,
           };
           return item.id
@@ -209,7 +273,8 @@ export function SportTodosPage() {
     const { data: routine } = await supabase
       .from("routines")
       .insert({ user_id: USER_ID, area: "sport", ...routineFields })
-      .select().single();
+      .select()
+      .single();
 
     if (routine) {
       await supabase.from("routine_items").insert(
@@ -220,7 +285,7 @@ export function SportTodosPage() {
           reps: item.reps || null,
           duration_sec: item.duration_sec || null,
           order_index: idx,
-        }))
+        })),
       );
       resetRoutineForm();
       fetchData();
@@ -235,8 +300,8 @@ export function SportTodosPage() {
   const deleteRoutineItem = async (routineId: string, itemId: string) => {
     setRoutines((prev) =>
       prev.map((r) =>
-        r.id === routineId ? { ...r, items: r.items.filter((i) => i.id !== itemId) } : r
-      )
+        r.id === routineId ? { ...r, items: r.items.filter((i) => i.id !== itemId) } : r,
+      ),
     );
     await supabase.from("routine_items").delete().eq("id", itemId);
   };
@@ -244,7 +309,7 @@ export function SportTodosPage() {
   // ── Todo handlers ──
 
   const toggleTodo = async (todo: UnifiedTodo) => {
-    setTodos((prev) => prev.map((t) => t.id === todo.id ? { ...t, completed: !t.completed } : t));
+    setTodos((prev) => prev.map((t) => (t.id === todo.id ? { ...t, completed: !t.completed } : t)));
     const table = todo.source === "sport" ? "sport_todos" : "daily_todos";
     await supabase.from(table).update({ completed: !todo.completed }).eq("id", todo.id);
   };
@@ -253,8 +318,16 @@ export function SportTodosPage() {
     if (!newTodoTitle.trim()) return;
     const { data } = await supabase
       .from("sport_todos")
-      .insert({ user_id: USER_ID, title: newTodoTitle.trim(), due_date: todayString(), priority: newTodoPriority, category: "sonstiges", completed: false })
-      .select().single();
+      .insert({
+        user_id: USER_ID,
+        title: newTodoTitle.trim(),
+        due_date: todayString(),
+        priority: newTodoPriority,
+        category: "sonstiges",
+        completed: false,
+      })
+      .select()
+      .single();
     if (data) {
       setTodos((prev) => [{ ...(data as SportTodo), source: "sport" as const }, ...prev]);
       setNewTodoTitle("");
@@ -275,7 +348,10 @@ export function SportTodosPage() {
   const totalDone = routinesDone + todosDone;
   const progress = totalTasks > 0 ? (totalDone / totalTasks) * 100 : 0;
 
-  if (loading) return <div className="flex min-h-screen items-center justify-center text-neutral-500">Laden...</div>;
+  if (loading)
+    return (
+      <div className="flex min-h-screen items-center justify-center text-neutral-500">Laden...</div>
+    );
 
   return (
     <div className="space-y-4 p-4 pb-24">
@@ -284,22 +360,31 @@ export function SportTodosPage() {
       {/* Progress */}
       <div className="rounded-xl bg-card p-4">
         <div className="flex justify-between text-sm text-neutral-500 mb-2">
-          <span>{totalDone} / {totalTasks} erledigt</span>
+          <span>
+            {totalDone} / {totalTasks} erledigt
+          </span>
           <span>{Math.round(progress)}%</span>
         </div>
         <div className="h-2 rounded-full bg-neutral-800 overflow-hidden">
-          <div className="h-full rounded-full bg-white transition-all duration-300" style={{ width: `${progress}%` }} />
+          <div
+            className="h-full rounded-full bg-white transition-all duration-300"
+            style={{ width: `${progress}%` }}
+          />
         </div>
       </div>
 
       {/* Tabs */}
       <div className="flex gap-1 rounded-xl bg-card p-1">
-        <button onClick={() => setActiveTab("routinen")}
-          className={`flex-1 rounded-lg py-2 text-sm font-medium transition-all ${activeTab === "routinen" ? "bg-white text-black" : "text-neutral-500"}`}>
+        <button
+          onClick={() => setActiveTab("routinen")}
+          className={`flex-1 rounded-lg py-2 text-sm font-medium transition-all ${activeTab === "routinen" ? "bg-white text-black" : "text-neutral-500"}`}
+        >
           Routinen ({routines.length})
         </button>
-        <button onClick={() => setActiveTab("todos")}
-          className={`flex-1 rounded-lg py-2 text-sm font-medium transition-all ${activeTab === "todos" ? "bg-white text-black" : "text-neutral-500"}`}>
+        <button
+          onClick={() => setActiveTab("todos")}
+          className={`flex-1 rounded-lg py-2 text-sm font-medium transition-all ${activeTab === "todos" ? "bg-white text-black" : "text-neutral-500"}`}
+        >
           Todos ({todos.length})
         </button>
       </div>
@@ -314,8 +399,11 @@ export function SportTodosPage() {
             const allDone = routine.log?.completed ?? false;
 
             return (
-              <SwipeRow key={routine.id} onDelete={() => deleteRoutine(routine.id)}
-                className={`transition-opacity ${allDone ? "opacity-60" : ""}`}>
+              <SwipeRow
+                key={routine.id}
+                onDelete={() => deleteRoutine(routine.id)}
+                className={`transition-opacity ${allDone ? "opacity-60" : ""}`}
+              >
                 {/* Routine header */}
                 <button
                   onClick={() => setExpandedRoutine(isExpanded ? null : routine.id)}
@@ -325,20 +413,29 @@ export function SportTodosPage() {
                   <div className="flex-1 text-left">
                     <p className="text-sm font-semibold">{routine.name}</p>
                     <p className="text-xs text-neutral-500">
-                      {itemsDone}/{routine.items.length} Schritte · {categoryLabels[routine.category]}
+                      {itemsDone}/{routine.items.length} Schritte ·{" "}
+                      {categoryLabels[routine.category]}
                     </p>
                   </div>
                   {/* Mini progress */}
                   <div className="flex items-center gap-2">
                     {allDone && <Check className="h-4 w-4 text-green-500" />}
-                    {isExpanded ? <ChevronUp className="h-4 w-4 text-neutral-500" /> : <ChevronDown className="h-4 w-4 text-neutral-500" />}
+                    {isExpanded ? (
+                      <ChevronUp className="h-4 w-4 text-neutral-500" />
+                    ) : (
+                      <ChevronDown className="h-4 w-4 text-neutral-500" />
+                    )}
                   </div>
                 </button>
 
                 {/* Progress bar */}
                 <div className="mx-4 mb-2 h-1 rounded-full bg-neutral-800 overflow-hidden">
-                  <div className="h-full rounded-full bg-green-500 transition-all duration-300"
-                    style={{ width: `${routine.items.length > 0 ? (itemsDone / routine.items.length) * 100 : 0}%` }} />
+                  <div
+                    className="h-full rounded-full bg-green-500 transition-all duration-300"
+                    style={{
+                      width: `${routine.items.length > 0 ? (itemsDone / routine.items.length) * 100 : 0}%`,
+                    }}
+                  />
                 </div>
 
                 {/* Expanded items */}
@@ -347,8 +444,11 @@ export function SportTodosPage() {
                     {routine.items.map((item) => {
                       const isDone = completed.includes(item.id);
                       return (
-                        <SwipeRow key={item.id} rounded="rounded-lg"
-                          onDelete={() => deleteRoutineItem(routine.id, item.id)}>
+                        <SwipeRow
+                          key={item.id}
+                          rounded="rounded-lg"
+                          onDelete={() => deleteRoutineItem(routine.id, item.id)}
+                        >
                           <div className="flex items-center gap-3 py-1">
                             <button
                               onClick={() => toggleRoutineItem(routine, item.id)}
@@ -359,7 +459,11 @@ export function SportTodosPage() {
                               {isDone && <Check className="h-3.5 w-3.5 text-black" />}
                             </button>
                             <div className="flex-1">
-                              <p className={`text-sm ${isDone ? "line-through text-neutral-600" : ""}`}>{item.name}</p>
+                              <p
+                                className={`text-sm ${isDone ? "line-through text-neutral-600" : ""}`}
+                              >
+                                {item.name}
+                              </p>
                               {(item.sets || item.reps || item.duration_sec) && (
                                 <p className="text-xs text-neutral-600">
                                   {item.sets && item.reps ? `${item.sets}×${item.reps}` : ""}
@@ -375,8 +479,10 @@ export function SportTodosPage() {
                     <p className="pt-1 text-center text-[10px] text-neutral-600">
                       Nach links wischen zum Löschen
                     </p>
-                    <button onClick={() => startEditRoutine(routine)}
-                      className="flex w-full items-center justify-center gap-1.5 rounded-lg bg-neutral-800 py-2 text-xs font-medium text-neutral-300 active:scale-[0.98]">
+                    <button
+                      onClick={() => startEditRoutine(routine)}
+                      className="flex w-full items-center justify-center gap-1.5 rounded-lg bg-neutral-800 py-2 text-xs font-medium text-neutral-300 active:scale-[0.98]"
+                    >
                       <Pencil className="h-3.5 w-3.5" /> Routine bearbeiten
                     </button>
                   </div>
@@ -389,17 +495,40 @@ export function SportTodosPage() {
           {showAddRoutine ? (
             <div className="rounded-xl bg-card p-4 space-y-3">
               <div className="flex items-center justify-between">
-                <p className="text-sm font-medium">{editingRoutineId ? "Routine bearbeiten" : "Neue Routine"}</p>
-                <button onClick={resetRoutineForm}><X className="h-4 w-4 text-neutral-500" /></button>
+                <p className="text-sm font-medium">
+                  {editingRoutineId ? "Routine bearbeiten" : "Neue Routine"}
+                </p>
+                <button onClick={resetRoutineForm}>
+                  <X className="h-4 w-4 text-neutral-500" />
+                </button>
               </div>
-              <Input value={newRoutineName} onChange={(e) => setNewRoutineName(e.target.value)}
-                placeholder="Name (z.B. Scapula Routine)" className="bg-neutral-800 border-none" />
+              <Input
+                value={newRoutineName}
+                onChange={(e) => setNewRoutineName(e.target.value)}
+                placeholder="Name (z.B. Scapula Routine)"
+                className="bg-neutral-800 border-none"
+              />
               <div className="flex flex-wrap gap-1">
-                {(["kraft", "cardio", "mobility", "gesundheit", "morgenroutine", "abendroutine", "sonstiges"] as RoutineCategory[]).map((cat) => (
-                  <button key={cat} onClick={() => setNewRoutineCategory(cat)}
+                {(
+                  [
+                    "kraft",
+                    "cardio",
+                    "mobility",
+                    "gesundheit",
+                    "morgenroutine",
+                    "abendroutine",
+                    "sonstiges",
+                  ] as RoutineCategory[]
+                ).map((cat) => (
+                  <button
+                    key={cat}
+                    onClick={() => setNewRoutineCategory(cat)}
                     className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-all ${
-                      newRoutineCategory === cat ? "bg-white text-black" : "bg-neutral-800 text-neutral-400"
-                    }`}>
+                      newRoutineCategory === cat
+                        ? "bg-white text-black"
+                        : "bg-neutral-800 text-neutral-400"
+                    }`}
+                  >
                     {categoryLabels[cat]}
                   </button>
                 ))}
@@ -408,12 +537,19 @@ export function SportTodosPage() {
                 <p className="text-xs text-neutral-500 mb-1">Wochentage (leer = täglich):</p>
                 <div className="flex gap-1">
                   {["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"].map((d, i) => (
-                    <button key={i} onClick={() => setNewRoutineWeekdays((prev) =>
-                      prev.includes(i) ? prev.filter((x) => x !== i) : [...prev, i].sort()
-                    )}
+                    <button
+                      key={i}
+                      onClick={() =>
+                        setNewRoutineWeekdays((prev) =>
+                          prev.includes(i) ? prev.filter((x) => x !== i) : [...prev, i].sort(),
+                        )
+                      }
                       className={`flex-1 rounded-lg py-1.5 text-xs font-medium transition-all ${
-                        newRoutineWeekdays.includes(i) ? "bg-white text-black" : "bg-neutral-800 text-neutral-500"
-                      }`}>
+                        newRoutineWeekdays.includes(i)
+                          ? "bg-white text-black"
+                          : "bg-neutral-800 text-neutral-500"
+                      }`}
+                    >
                       {d}
                     </button>
                   ))}
@@ -422,57 +558,112 @@ export function SportTodosPage() {
               <div>
                 <p className="text-xs text-neutral-500 mb-1">Zeitraum (leer = unbegrenzt):</p>
                 <div className="grid grid-cols-2 gap-2">
-                  <Input type="text" value={newRoutineStartDate} onChange={(e) => setNewRoutineStartDate(e.target.value)}
-                    placeholder="Von (JJJJ-MM-TT)" className="bg-neutral-800 border-none text-xs"
-                    onFocus={(e) => { e.target.type = "date"; }} onBlur={(e) => { if (!e.target.value) e.target.type = "text"; }} />
-                  <Input type="text" value={newRoutineEndDate} onChange={(e) => setNewRoutineEndDate(e.target.value)}
-                    placeholder="Bis (JJJJ-MM-TT)" className="bg-neutral-800 border-none text-xs"
-                    onFocus={(e) => { e.target.type = "date"; }} onBlur={(e) => { if (!e.target.value) e.target.type = "text"; }} />
+                  <Input
+                    type="text"
+                    value={newRoutineStartDate}
+                    onChange={(e) => setNewRoutineStartDate(e.target.value)}
+                    placeholder="Von (JJJJ-MM-TT)"
+                    className="bg-neutral-800 border-none text-xs"
+                    onFocus={(e) => {
+                      e.target.type = "date";
+                    }}
+                    onBlur={(e) => {
+                      if (!e.target.value) e.target.type = "text";
+                    }}
+                  />
+                  <Input
+                    type="text"
+                    value={newRoutineEndDate}
+                    onChange={(e) => setNewRoutineEndDate(e.target.value)}
+                    placeholder="Bis (JJJJ-MM-TT)"
+                    className="bg-neutral-800 border-none text-xs"
+                    onFocus={(e) => {
+                      e.target.type = "date";
+                    }}
+                    onBlur={(e) => {
+                      if (!e.target.value) e.target.type = "text";
+                    }}
+                  />
                 </div>
               </div>
               <p className="text-xs text-neutral-500">Schritte:</p>
               {newRoutineItems.map((item, idx) => (
                 <div key={idx} className="flex items-center gap-2">
-                  <Input value={item.name} onChange={(e) => {
-                    const updated = [...newRoutineItems];
-                    updated[idx] = { ...updated[idx], name: e.target.value };
-                    setNewRoutineItems(updated);
-                  }} placeholder={`Schritt ${idx + 1}`} className="bg-neutral-800 border-none flex-1" />
+                  <Input
+                    value={item.name}
+                    onChange={(e) => {
+                      const updated = [...newRoutineItems];
+                      updated[idx] = { ...updated[idx], name: e.target.value };
+                      setNewRoutineItems(updated);
+                    }}
+                    placeholder={`Schritt ${idx + 1}`}
+                    className="bg-neutral-800 border-none flex-1"
+                  />
                   {["kraft", "cardio", "mobility"].includes(newRoutineCategory) && (
                     <>
-                      <Input type="number" placeholder="Sets" className="w-16 bg-neutral-800 border-none"
-                        value={item.sets ?? ""} onChange={(e) => {
+                      <Input
+                        type="number"
+                        placeholder="Sets"
+                        className="w-16 bg-neutral-800 border-none"
+                        value={item.sets ?? ""}
+                        onChange={(e) => {
                           const updated = [...newRoutineItems];
-                          updated[idx] = { ...updated[idx], sets: Number(e.target.value) || undefined };
+                          updated[idx] = {
+                            ...updated[idx],
+                            sets: Number(e.target.value) || undefined,
+                          };
                           setNewRoutineItems(updated);
-                        }} />
-                      <Input type="number" placeholder="Reps" className="w-16 bg-neutral-800 border-none"
-                        value={item.reps ?? ""} onChange={(e) => {
+                        }}
+                      />
+                      <Input
+                        type="number"
+                        placeholder="Reps"
+                        className="w-16 bg-neutral-800 border-none"
+                        value={item.reps ?? ""}
+                        onChange={(e) => {
                           const updated = [...newRoutineItems];
-                          updated[idx] = { ...updated[idx], reps: Number(e.target.value) || undefined };
+                          updated[idx] = {
+                            ...updated[idx],
+                            reps: Number(e.target.value) || undefined,
+                          };
                           setNewRoutineItems(updated);
-                        }} />
+                        }}
+                      />
                     </>
                   )}
                   {newRoutineItems.length > 1 && (
-                    <button onClick={() => setNewRoutineItems(newRoutineItems.filter((_, i) => i !== idx))}>
+                    <button
+                      onClick={() =>
+                        setNewRoutineItems(newRoutineItems.filter((_, i) => i !== idx))
+                      }
+                    >
                       <X className="h-4 w-4 text-neutral-600" />
                     </button>
                   )}
                 </div>
               ))}
-              <button onClick={() => setNewRoutineItems([...newRoutineItems, { name: "" }])}
-                className="flex items-center gap-1 text-xs text-neutral-400">
+              <button
+                onClick={() => setNewRoutineItems([...newRoutineItems, { name: "" }])}
+                className="flex items-center gap-1 text-xs text-neutral-400"
+              >
                 <Plus className="h-3 w-3" /> Schritt hinzufügen
               </button>
-              <button onClick={saveRoutine} disabled={!newRoutineName.trim()}
-                className="w-full rounded-xl bg-white py-2.5 text-sm font-semibold text-black disabled:opacity-30 active:scale-[0.98]">
+              <button
+                onClick={saveRoutine}
+                disabled={!newRoutineName.trim()}
+                className="w-full rounded-xl bg-white py-2.5 text-sm font-semibold text-black disabled:opacity-30 active:scale-[0.98]"
+              >
                 {editingRoutineId ? "Speichern" : "Routine erstellen"}
               </button>
             </div>
           ) : (
-            <button onClick={() => { setEditingRoutineId(null); setShowAddRoutine(true); }}
-              className="flex w-full items-center justify-center gap-2 rounded-xl bg-card p-3 text-sm text-neutral-400 active:scale-[0.98]">
+            <button
+              onClick={() => {
+                setEditingRoutineId(null);
+                setShowAddRoutine(true);
+              }}
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-card p-3 text-sm text-neutral-400 active:scale-[0.98]"
+            >
               <Plus className="h-4 w-4" /> Routine hinzufügen
             </button>
           )}
@@ -481,18 +672,30 @@ export function SportTodosPage() {
         <div className="space-y-3">
           {/* Todo list */}
           {todos.map((todo) => (
-            <div key={todo.id} className={`flex items-center gap-3 rounded-xl bg-card p-4 transition-opacity ${todo.completed ? "opacity-60" : ""}`}>
-              <button onClick={() => toggleTodo(todo)}
+            <div
+              key={todo.id}
+              className={`flex items-center gap-3 rounded-xl bg-card p-4 transition-opacity ${todo.completed ? "opacity-60" : ""}`}
+            >
+              <button
+                onClick={() => toggleTodo(todo)}
                 className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-md border-2 transition-all ${
                   todo.completed ? "border-white bg-white" : "border-neutral-600"
-                }`}>
+                }`}
+              >
                 {todo.completed && <Check className="h-3.5 w-3.5 text-black" />}
               </button>
               <div className="flex-1">
-                <p className={`text-sm font-medium ${todo.completed ? "line-through text-neutral-600" : ""}`}>{todo.title}</p>
+                <p
+                  className={`text-sm font-medium ${todo.completed ? "line-through text-neutral-600" : ""}`}
+                >
+                  {todo.title}
+                </p>
                 {todo.description && <p className="text-xs text-neutral-600">{todo.description}</p>}
               </div>
-              <button onClick={() => deleteTodo(todo)} className="text-neutral-600 hover:text-red-500">
+              <button
+                onClick={() => deleteTodo(todo)}
+                className="text-neutral-600 hover:text-red-500"
+              >
                 <Trash2 className="h-4 w-4" />
               </button>
             </div>
@@ -501,29 +704,49 @@ export function SportTodosPage() {
           {/* Add todo */}
           {showAddTodo ? (
             <div className="rounded-xl bg-card p-4 space-y-3">
-              <Input value={newTodoTitle} onChange={(e) => setNewTodoTitle(e.target.value)}
-                placeholder="Todo Titel" className="bg-neutral-800 border-none"
-                onKeyDown={(e) => e.key === "Enter" && addTodo()} />
+              <Input
+                value={newTodoTitle}
+                onChange={(e) => setNewTodoTitle(e.target.value)}
+                placeholder="Todo Titel"
+                className="bg-neutral-800 border-none"
+                onKeyDown={(e) => e.key === "Enter" && addTodo()}
+              />
               <div className="flex gap-1">
                 {(["hoch", "mittel", "niedrig"] as TodoPriority[]).map((p) => (
-                  <button key={p} onClick={() => setNewTodoPriority(p)}
+                  <button
+                    key={p}
+                    onClick={() => setNewTodoPriority(p)}
                     className={`rounded-lg px-3 py-1.5 text-xs font-medium ${
-                      newTodoPriority === p ? "bg-white text-black" : "bg-neutral-800 text-neutral-400"
-                    }`}>
+                      newTodoPriority === p
+                        ? "bg-white text-black"
+                        : "bg-neutral-800 text-neutral-400"
+                    }`}
+                  >
                     {p.charAt(0).toUpperCase() + p.slice(1)}
                   </button>
                 ))}
               </div>
               <div className="flex gap-2">
-                <button onClick={addTodo} disabled={!newTodoTitle.trim()}
-                  className="flex-1 rounded-xl bg-white py-2 text-sm font-semibold text-black disabled:opacity-30">Erstellen</button>
-                <button onClick={() => setShowAddTodo(false)}
-                  className="rounded-xl bg-neutral-800 px-4 py-2 text-sm text-neutral-400">Abbrechen</button>
+                <button
+                  onClick={addTodo}
+                  disabled={!newTodoTitle.trim()}
+                  className="flex-1 rounded-xl bg-white py-2 text-sm font-semibold text-black disabled:opacity-30"
+                >
+                  Erstellen
+                </button>
+                <button
+                  onClick={() => setShowAddTodo(false)}
+                  className="rounded-xl bg-neutral-800 px-4 py-2 text-sm text-neutral-400"
+                >
+                  Abbrechen
+                </button>
               </div>
             </div>
           ) : (
-            <button onClick={() => setShowAddTodo(true)}
-              className="flex w-full items-center justify-center gap-2 rounded-xl bg-card p-3 text-sm text-neutral-400 active:scale-[0.98]">
+            <button
+              onClick={() => setShowAddTodo(true)}
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-card p-3 text-sm text-neutral-400 active:scale-[0.98]"
+            >
               <Plus className="h-4 w-4" /> Todo hinzufügen
             </button>
           )}

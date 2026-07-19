@@ -32,9 +32,14 @@ export function WeeklyReportPage() {
     setLoading(false);
   }, []);
 
-  useEffect(() => { fetchReports(); }, [fetchReports]);
+  useEffect(() => {
+    fetchReports();
+  }, [fetchReports]);
 
-  if (loading) return <div className="flex items-center justify-center p-8 text-muted-foreground">Laden...</div>;
+  if (loading)
+    return (
+      <div className="flex items-center justify-center p-8 text-muted-foreground">Laden...</div>
+    );
 
   return (
     <div className="space-y-4 p-4">

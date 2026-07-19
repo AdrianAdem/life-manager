@@ -1,6 +1,13 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import {
-  BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
+  BarChart,
+  Bar,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
   ResponsiveContainer,
 } from "recharts";
 import { supabase } from "@/lib/supabase";
@@ -8,7 +15,11 @@ import { USER_ID } from "@/lib/constants";
 import { TrendingUp, Activity, Zap, BarChart3, ChevronDown, Search, X } from "lucide-react";
 import type { TrainingLog, TrainingExercise, SetLog } from "@/types/database";
 
-function ExerciseDropdown({ exercises, selectedId, onSelect }: {
+function ExerciseDropdown({
+  exercises,
+  selectedId,
+  onSelect,
+}: {
   exercises: TrainingExercise[];
   selectedId: string | null;
   onSelect: (id: string) => void;
@@ -31,22 +42,28 @@ function ExerciseDropdown({ exercises, selectedId, onSelect }: {
   }, []);
 
   const selected = exercises.find((e) => e.id === selectedId);
-  const filtered = exercises.filter((e) =>
-    e.name.toLowerCase().includes(search.toLowerCase()) ||
-    e.muscle_group.toLowerCase().includes(search.toLowerCase())
+  const filtered = exercises.filter(
+    (e) =>
+      e.name.toLowerCase().includes(search.toLowerCase()) ||
+      e.muscle_group.toLowerCase().includes(search.toLowerCase()),
   );
 
   return (
     <div ref={ref} className="relative mb-3">
       <button
-        onClick={() => { setOpen(!open); setSearch(""); }}
+        onClick={() => {
+          setOpen(!open);
+          setSearch("");
+        }}
         className="flex w-full items-center justify-between rounded-xl bg-neutral-800 px-4 py-3 text-left"
       >
         <div>
           <p className="text-sm font-medium">{selected ? selected.name : "Übung auswählen"}</p>
           {selected && <p className="text-xs text-neutral-500">{selected.muscle_group}</p>}
         </div>
-        <ChevronDown className={`h-4 w-4 text-neutral-500 transition-transform ${open ? "rotate-180" : ""}`} />
+        <ChevronDown
+          className={`h-4 w-4 text-neutral-500 transition-transform ${open ? "rotate-180" : ""}`}
+        />
       </button>
 
       {open && (
@@ -69,21 +86,27 @@ function ExerciseDropdown({ exercises, selectedId, onSelect }: {
           <div className="max-h-56 overflow-y-auto">
             {filtered.length === 0 ? (
               <p className="px-4 py-3 text-sm text-neutral-500">Keine Übungen gefunden</p>
-            ) : filtered.map((ex) => (
-              <button
-                key={ex.id}
-                onClick={() => { onSelect(ex.id); setOpen(false); setSearch(""); }}
-                className={`flex w-full items-center justify-between px-4 py-2.5 text-left transition-colors ${
-                  selectedId === ex.id ? "bg-neutral-700" : "hover:bg-neutral-700/50"
-                }`}
-              >
-                <div>
-                  <p className="text-sm">{ex.name}</p>
-                  <p className="text-xs text-neutral-500">{ex.muscle_group}</p>
-                </div>
-                {selectedId === ex.id && <div className="h-2 w-2 rounded-full bg-white" />}
-              </button>
-            ))}
+            ) : (
+              filtered.map((ex) => (
+                <button
+                  key={ex.id}
+                  onClick={() => {
+                    onSelect(ex.id);
+                    setOpen(false);
+                    setSearch("");
+                  }}
+                  className={`flex w-full items-center justify-between px-4 py-2.5 text-left transition-colors ${
+                    selectedId === ex.id ? "bg-neutral-700" : "hover:bg-neutral-700/50"
+                  }`}
+                >
+                  <div>
+                    <p className="text-sm">{ex.name}</p>
+                    <p className="text-xs text-neutral-500">{ex.muscle_group}</p>
+                  </div>
+                  {selectedId === ex.id && <div className="h-2 w-2 rounded-full bg-white" />}
+                </button>
+              ))
+            )}
           </div>
         </div>
       )}
@@ -91,8 +114,18 @@ function ExerciseDropdown({ exercises, selectedId, onSelect }: {
   );
 }
 
-function ScoreRing({ value, maxValue, label, icon, color }: {
-  value: number; maxValue: number; label: string; icon: React.ReactNode; color: string;
+function ScoreRing({
+  value,
+  maxValue,
+  label,
+  icon,
+  color,
+}: {
+  value: number;
+  maxValue: number;
+  label: string;
+  icon: React.ReactNode;
+  color: string;
 }) {
   const size = 72;
   const strokeWidth = 5;
@@ -103,11 +136,30 @@ function ScoreRing({ value, maxValue, label, icon, color }: {
 
   return (
     <div className="flex flex-col items-center gap-1">
-      <div className="relative inline-flex items-center justify-center" style={{ width: size, height: size }}>
+      <div
+        className="relative inline-flex items-center justify-center"
+        style={{ width: size, height: size }}
+      >
         <svg width={size} height={size} className="-rotate-90">
-          <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke="#262626" strokeWidth={strokeWidth} />
-          <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke={color} strokeWidth={strokeWidth}
-            strokeDasharray={circumference} strokeDashoffset={offset} strokeLinecap="round" />
+          <circle
+            cx={size / 2}
+            cy={size / 2}
+            r={radius}
+            fill="none"
+            stroke="#262626"
+            strokeWidth={strokeWidth}
+          />
+          <circle
+            cx={size / 2}
+            cy={size / 2}
+            r={radius}
+            fill="none"
+            stroke={color}
+            strokeWidth={strokeWidth}
+            strokeDasharray={circumference}
+            strokeDashoffset={offset}
+            strokeLinecap="round"
+          />
         </svg>
         <div className="absolute flex flex-col items-center">
           <span className="text-lg font-bold">{value.toFixed(1)}</span>
@@ -125,7 +177,9 @@ export function SportStatsPage() {
   const [weeklyVolume, setWeeklyVolume] = useState<{ week: string; sets: number }[]>([]);
   const [exercises, setExercises] = useState<TrainingExercise[]>([]);
   const [selectedExercise, setSelectedExercise] = useState<string | null>(null);
-  const [strengthData, setStrengthData] = useState<{ date: string; maxWeight: number; estimated1RM: number }[]>([]);
+  const [strengthData, setStrengthData] = useState<
+    { date: string; maxWeight: number; estimated1RM: number }[]
+  >([]);
   const [loading, setLoading] = useState(true);
   const [timeRange, setTimeRange] = useState<"1W" | "1M" | "1Y" | "All">("1M");
   const [metricTab, setMetricTab] = useState<"1RM" | "Max Weight" | "Volume" | "Total Reps">("1RM");
@@ -140,10 +194,14 @@ export function SportStatsPage() {
 
   const getDaysBack = () => {
     switch (timeRange) {
-      case "1W": return 7;
-      case "1M": return 30;
-      case "1Y": return 365;
-      case "All": return 9999;
+      case "1W":
+        return 7;
+      case "1M":
+        return 30;
+      case "1Y":
+        return 365;
+      case "All":
+        return 9999;
     }
   };
 
@@ -197,7 +255,9 @@ export function SportStatsPage() {
     }
 
     if (logs) {
-      const typedLogs = logs as (TrainingLog & { training_exercises: { name: string; muscle_group: string } })[];
+      const typedLogs = logs as (TrainingLog & {
+        training_exercises: { name: string; muscle_group: string };
+      })[];
 
       // Weekly volume
       const weekMap = new Map<string, number>();
@@ -215,16 +275,17 @@ export function SportStatsPage() {
           .map(([week, sets]) => ({
             week: new Date(week).toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit" }),
             sets,
-          }))
+          })),
       );
 
       // Calculate insight scores
       const totalSets = typedLogs.reduce((s, l) => s + (l.sets_completed as SetLog[]).length, 0);
       const uniqueDays = new Set(typedLogs.map((l) => l.date)).size;
-      const avgWeightPerSet = typedLogs.reduce((s, l) => {
-        const sets = l.sets_completed as SetLog[];
-        return s + sets.reduce((ss, set) => ss + set.weight_kg, 0);
-      }, 0) / Math.max(totalSets, 1);
+      const avgWeightPerSet =
+        typedLogs.reduce((s, l) => {
+          const sets = l.sets_completed as SetLog[];
+          return s + sets.reduce((ss, set) => ss + set.weight_kg, 0);
+        }, 0) / Math.max(totalSets, 1);
 
       setScores({
         progress: Math.min(totalSets / 50, 10),
@@ -256,10 +317,12 @@ export function SportStatsPage() {
     }
 
     setLoading(false);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [timeRange]);
 
-  useEffect(() => { fetchStats(); }, [fetchStats]);
+  useEffect(() => {
+    fetchStats();
+  }, [fetchStats]);
 
   const fetchExerciseStrength = async (exerciseId: string) => {
     setSelectedExercise(exerciseId);
@@ -275,29 +338,41 @@ export function SportStatsPage() {
         (logs as TrainingLog[]).map((log) => {
           const sets = log.sets_completed as SetLog[];
           const maxWeight = Math.max(...sets.map((s) => s.weight_kg), 0);
-          const bestSet = sets.reduce((best, s) =>
-            s.weight_kg > best.weight_kg ? s : best, sets[0] ?? { weight_kg: 0, reps: 0 });
+          const bestSet = sets.reduce(
+            (best, s) => (s.weight_kg > best.weight_kg ? s : best),
+            sets[0] ?? { weight_kg: 0, reps: 0 },
+          );
           // Brzycki formula for estimated 1RM
-          const e1rm = bestSet && bestSet.reps > 0
-            ? Math.round(bestSet.weight_kg * (36 / (37 - bestSet.reps)))
-            : maxWeight;
+          const e1rm =
+            bestSet && bestSet.reps > 0
+              ? Math.round(bestSet.weight_kg * (36 / (37 - bestSet.reps)))
+              : maxWeight;
           return {
-            date: new Date(log.date).toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit" }),
+            date: new Date(log.date).toLocaleDateString("de-DE", {
+              day: "2-digit",
+              month: "2-digit",
+            }),
             maxWeight,
             estimated1RM: e1rm,
           };
-        })
+        }),
       );
     }
   };
 
   const selectedEx = exercises.find((e) => e.id === selectedExercise);
-  const improvement = strengthData.length >= 2
-    ? ((strengthData[strengthData.length - 1].estimated1RM - strengthData[0].estimated1RM) / Math.max(strengthData[0].estimated1RM, 1) * 100)
-    : 0;
-  const latestValue = strengthData.length > 0
-    ? (metricTab === "1RM" ? strengthData[strengthData.length - 1].estimated1RM : strengthData[strengthData.length - 1].maxWeight)
-    : 0;
+  const improvement =
+    strengthData.length >= 2
+      ? ((strengthData[strengthData.length - 1].estimated1RM - strengthData[0].estimated1RM) /
+          Math.max(strengthData[0].estimated1RM, 1)) *
+        100
+      : 0;
+  const latestValue =
+    strengthData.length > 0
+      ? metricTab === "1RM"
+        ? strengthData[strengthData.length - 1].estimated1RM
+        : strengthData[strengthData.length - 1].maxWeight
+      : 0;
 
   // Calendar rendering
   type CalDay = { date: Date; hasTraining: boolean } | null;
@@ -327,7 +402,10 @@ export function SportStatsPage() {
     return weeks;
   };
 
-  if (loading) return <div className="flex min-h-screen items-center justify-center text-neutral-500">Laden...</div>;
+  if (loading)
+    return (
+      <div className="flex min-h-screen items-center justify-center text-neutral-500">Laden...</div>
+    );
 
   return (
     <div className="space-y-6 p-4">
@@ -336,25 +414,53 @@ export function SportStatsPage() {
       {/* Insight Scores */}
       <div className="rounded-xl bg-card p-4">
         <div className="mb-3 flex gap-2">
-          <button onClick={() => setInsightTab("global")}
+          <button
+            onClick={() => setInsightTab("global")}
             className={`rounded-lg px-3 py-1 text-xs font-semibold transition-all ${
               insightTab === "global" ? "bg-white text-black" : "text-neutral-500"
-            }`}>Global</button>
-          <button onClick={() => setInsightTab("exercises")}
+            }`}
+          >
+            Global
+          </button>
+          <button
+            onClick={() => setInsightTab("exercises")}
             className={`rounded-lg px-3 py-1 text-xs font-semibold transition-all ${
               insightTab === "exercises" ? "bg-white text-black" : "text-neutral-500"
-            }`}>Übungen</button>
+            }`}
+          >
+            Übungen
+          </button>
         </div>
         {insightTab === "global" ? (
           <div className="flex justify-around">
-            <ScoreRing value={scores.progress} maxValue={10} label="Progress" color="#ffffff"
-              icon={<TrendingUp className="h-3 w-3 text-neutral-500" />} />
-            <ScoreRing value={scores.consistency} maxValue={10} label="Consistency" color="#ffffff"
-              icon={<Activity className="h-3 w-3 text-neutral-500" />} />
-            <ScoreRing value={scores.intensity} maxValue={10} label="Intensity" color="#ffffff"
-              icon={<Zap className="h-3 w-3 text-neutral-500" />} />
-            <ScoreRing value={scores.volume} maxValue={10} label="Volume" color="#ffffff"
-              icon={<BarChart3 className="h-3 w-3 text-neutral-500" />} />
+            <ScoreRing
+              value={scores.progress}
+              maxValue={10}
+              label="Progress"
+              color="#ffffff"
+              icon={<TrendingUp className="h-3 w-3 text-neutral-500" />}
+            />
+            <ScoreRing
+              value={scores.consistency}
+              maxValue={10}
+              label="Consistency"
+              color="#ffffff"
+              icon={<Activity className="h-3 w-3 text-neutral-500" />}
+            />
+            <ScoreRing
+              value={scores.intensity}
+              maxValue={10}
+              label="Intensity"
+              color="#ffffff"
+              icon={<Zap className="h-3 w-3 text-neutral-500" />}
+            />
+            <ScoreRing
+              value={scores.volume}
+              maxValue={10}
+              label="Volume"
+              color="#ffffff"
+              icon={<BarChart3 className="h-3 w-3 text-neutral-500" />}
+            />
           </div>
         ) : (
           <div>
@@ -362,10 +468,16 @@ export function SportStatsPage() {
               <p className="py-4 text-center text-sm text-neutral-500">Keine Übungen</p>
             ) : (
               <>
-                <ExerciseDropdown exercises={exercises} selectedId={selectedExercise} onSelect={fetchExerciseStrength} />
+                <ExerciseDropdown
+                  exercises={exercises}
+                  selectedId={selectedExercise}
+                  onSelect={fetchExerciseStrength}
+                />
                 {selectedExercise && strengthData.length > 0 && (
                   <div className="mt-2 flex items-baseline gap-2">
-                    <span className="text-2xl font-bold">{strengthData[strengthData.length - 1].estimated1RM}</span>
+                    <span className="text-2xl font-bold">
+                      {strengthData[strengthData.length - 1].estimated1RM}
+                    </span>
                     <span className="text-sm text-neutral-500">kg 1RM</span>
                   </div>
                 )}
@@ -378,7 +490,8 @@ export function SportStatsPage() {
       {/* Time range selector */}
       <div className="flex gap-2">
         {(["1W", "1M", "1Y", "All"] as const).map((r) => (
-          <button key={r}
+          <button
+            key={r}
             onClick={() => setTimeRange(r)}
             className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-all ${
               timeRange === r ? "bg-white text-black" : "text-neutral-500"
@@ -400,9 +513,21 @@ export function SportStatsPage() {
         {weeklyVolume.length > 0 ? (
           <ResponsiveContainer width="100%" height={150}>
             <BarChart data={weeklyVolume}>
-              <XAxis dataKey="week" tick={{ fontSize: 9, fill: "#737373" }} axisLine={false} tickLine={false} />
+              <XAxis
+                dataKey="week"
+                tick={{ fontSize: 9, fill: "#737373" }}
+                axisLine={false}
+                tickLine={false}
+              />
               <YAxis hide />
-              <Tooltip contentStyle={{ background: "#1a1a1a", border: "1px solid #333", borderRadius: 8, fontSize: 12 }} />
+              <Tooltip
+                contentStyle={{
+                  background: "#1a1a1a",
+                  border: "1px solid #333",
+                  borderRadius: 8,
+                  fontSize: 12,
+                }}
+              />
               <Bar dataKey="sets" fill="#ffffff" radius={[3, 3, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
@@ -413,7 +538,11 @@ export function SportStatsPage() {
 
       {/* Strength chart */}
       <div className="rounded-xl bg-card p-4">
-        <ExerciseDropdown exercises={exercises} selectedId={selectedExercise} onSelect={fetchExerciseStrength} />
+        <ExerciseDropdown
+          exercises={exercises}
+          selectedId={selectedExercise}
+          onSelect={fetchExerciseStrength}
+        />
 
         {selectedEx && (
           <>
@@ -425,7 +554,9 @@ export function SportStatsPage() {
               <span className="text-3xl font-bold">{latestValue}</span>
               <span className="text-sm text-neutral-500">Kg</span>
               {improvement !== 0 && (
-                <span className={`text-sm font-medium ${improvement > 0 ? "text-green-500" : "text-red-500"}`}>
+                <span
+                  className={`text-sm font-medium ${improvement > 0 ? "text-green-500" : "text-red-500"}`}
+                >
                   {improvement > 0 ? "▲" : "▼"} {Math.abs(improvement).toFixed(2)}%
                 </span>
               )}
@@ -434,7 +565,8 @@ export function SportStatsPage() {
             {/* Metric tabs */}
             <div className="mb-3 flex gap-3">
               {(["1RM", "Max Weight", "Volume", "Total Reps"] as const).map((tab) => (
-                <button key={tab}
+                <button
+                  key={tab}
                   onClick={() => setMetricTab(tab)}
                   className={`text-xs font-medium ${metricTab === tab ? "text-white" : "text-neutral-600"}`}
                 >
@@ -449,12 +581,28 @@ export function SportStatsPage() {
           <ResponsiveContainer width="100%" height={180}>
             <LineChart data={strengthData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#262626" />
-              <XAxis dataKey="date" tick={{ fontSize: 9, fill: "#737373" }} axisLine={false} tickLine={false} />
+              <XAxis
+                dataKey="date"
+                tick={{ fontSize: 9, fill: "#737373" }}
+                axisLine={false}
+                tickLine={false}
+              />
               <YAxis tick={{ fontSize: 9, fill: "#737373" }} axisLine={false} tickLine={false} />
-              <Tooltip contentStyle={{ background: "#1a1a1a", border: "1px solid #333", borderRadius: 8, fontSize: 12 }} />
-              <Line type="monotone"
+              <Tooltip
+                contentStyle={{
+                  background: "#1a1a1a",
+                  border: "1px solid #333",
+                  borderRadius: 8,
+                  fontSize: 12,
+                }}
+              />
+              <Line
+                type="monotone"
                 dataKey={metricTab === "1RM" ? "estimated1RM" : "maxWeight"}
-                stroke="#ffffff" strokeWidth={2} dot={{ fill: "#ffffff", r: 3 }} />
+                stroke="#ffffff"
+                strokeWidth={2}
+                dot={{ fill: "#ffffff", r: 3 }}
+              />
             </LineChart>
           </ResponsiveContainer>
         ) : selectedExercise ? (
@@ -475,23 +623,24 @@ export function SportStatsPage() {
         <div className="flex flex-col gap-1">
           <div className="mb-1 flex gap-1 text-[9px] text-neutral-600">
             {["M", "D", "M", "D", "F", "S", "S"].map((d, i) => (
-              <div key={i} className="flex-1 text-center">{d}</div>
+              <div key={i} className="flex-1 text-center">
+                {d}
+              </div>
             ))}
           </div>
           {renderCalendar().map((week, wi) => (
             <div key={wi} className="flex gap-1">
               {week.map((day, di) => {
                 if (!day) return <div key={di} className="flex-1" />;
-                const isToday = day.date.toISOString().split("T")[0] === new Date().toISOString().split("T")[0];
+                const isToday =
+                  day.date.toISOString().split("T")[0] === new Date().toISOString().split("T")[0];
                 return (
                   <div key={di} className="flex flex-1 items-center justify-center">
-                    <div className={`h-3 w-3 rounded-full ${
-                      day.hasTraining
-                        ? "bg-white"
-                        : isToday
-                          ? "bg-red-500"
-                          : "bg-neutral-800"
-                    }`} />
+                    <div
+                      className={`h-3 w-3 rounded-full ${
+                        day.hasTraining ? "bg-white" : isToday ? "bg-red-500" : "bg-neutral-800"
+                      }`}
+                    />
                   </div>
                 );
               })}

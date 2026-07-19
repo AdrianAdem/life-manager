@@ -1,12 +1,36 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { Plus, Search, X, Droplets, Sunrise, Sun, Moon, Apple, Pill, Camera, MessageSquare, Star, Clock, ChevronLeft, ChevronRight, Calendar } from "lucide-react";
+import {
+  Plus,
+  Search,
+  X,
+  Droplets,
+  Sunrise,
+  Sun,
+  Moon,
+  Apple,
+  Pill,
+  Camera,
+  MessageSquare,
+  Star,
+  Clock,
+  ChevronLeft,
+  ChevronRight,
+  Calendar,
+} from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 import { USER_ID } from "@/lib/constants";
 import { todayString } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { calculateMacros } from "@/lib/macro-calc";
-import { searchFoods, getFoodDetails, lookupBarcode, parseWithAI, addRecentFood, getRecentFoods } from "@/lib/food-service";
+import {
+  searchFoods,
+  getFoodDetails,
+  lookupBarcode,
+  parseWithAI,
+  addRecentFood,
+  getRecentFoods,
+} from "@/lib/food-service";
 import type { FoodSearchResult, FatSecretFood, AIFoodItem, RecentFood } from "@/lib/food-service";
 import type { NutritionLog, MealType, WaterLog } from "@/types/database";
 // Type-only: erased at compile time, so the library stays dynamically imported.
@@ -14,8 +38,58 @@ import type { Html5Qrcode } from "html5-qrcode";
 
 function guessUnit(name: string): QuantityUnit {
   const lower = name.toLowerCase();
-  const mlKeywords = ["milch", "milk", "saft", "juice", "wasser", "water", "drink", "cola", "limo", "bier", "beer", "wein", "wine", "öl", "oil", "sauce", "soße", "brühe", "smoothie", "shake", "joghurt", "yogurt", "sahne", "cream"];
-  const stueckKeywords = ["riegel", "bar", "keks", "cookie", "ei ", "eier", "egg", "banane", "banana", "apfel", "apple", "brötchen", "brot", "bread", "toast", "scheibe", "slice", "stück", "piece", "donut", "muffin", "croissant", "wrap", "pizza"];
+  const mlKeywords = [
+    "milch",
+    "milk",
+    "saft",
+    "juice",
+    "wasser",
+    "water",
+    "drink",
+    "cola",
+    "limo",
+    "bier",
+    "beer",
+    "wein",
+    "wine",
+    "öl",
+    "oil",
+    "sauce",
+    "soße",
+    "brühe",
+    "smoothie",
+    "shake",
+    "joghurt",
+    "yogurt",
+    "sahne",
+    "cream",
+  ];
+  const stueckKeywords = [
+    "riegel",
+    "bar",
+    "keks",
+    "cookie",
+    "ei ",
+    "eier",
+    "egg",
+    "banane",
+    "banana",
+    "apfel",
+    "apple",
+    "brötchen",
+    "brot",
+    "bread",
+    "toast",
+    "scheibe",
+    "slice",
+    "stück",
+    "piece",
+    "donut",
+    "muffin",
+    "croissant",
+    "wrap",
+    "pizza",
+  ];
   if (mlKeywords.some((k) => lower.includes(k))) return "ml";
   if (stueckKeywords.some((k) => lower.includes(k))) return "stück";
   return "g";
@@ -27,19 +101,35 @@ type AddMode = "search" | "barcode" | "ai" | null;
 
 // Micronutrients FatSecret provides, keyed to the nutrition_log columns.
 const ZERO_MICROS = {
-  vitamin_a_mcg: 0, vitamin_c_mg: 0, vitamin_d_mcg: 0,
-  calcium_mg: 0, iron_mg: 0, potassium_mg: 0, sodium_mg: 0,
+  vitamin_a_mcg: 0,
+  vitamin_c_mg: 0,
+  vitamin_d_mcg: 0,
+  calcium_mg: 0,
+  iron_mg: 0,
+  potassium_mg: 0,
+  sodium_mg: 0,
 };
 
 const mealConfig: { type: MealType; label: string; icon: typeof Sunrise; pct: number }[] = [
   { type: "frühstück", label: "Frühstück", icon: Sunrise, pct: 0.25 },
   { type: "mittagessen", label: "Mittag", icon: Sun, pct: 0.35 },
-  { type: "abendessen", label: "Abend", icon: Moon, pct: 0.30 },
-  { type: "snack", label: "Snacks", icon: Apple, pct: 0.10 },
+  { type: "abendessen", label: "Abend", icon: Moon, pct: 0.3 },
+  { type: "snack", label: "Snacks", icon: Apple, pct: 0.1 },
 ];
 
-function RingProgress({ value, max, size = 64, strokeWidth = 5, color, children }: {
-  value: number; max: number; size?: number; strokeWidth?: number; color: string;
+function RingProgress({
+  value,
+  max,
+  size = 64,
+  strokeWidth = 5,
+  color,
+  children,
+}: {
+  value: number;
+  max: number;
+  size?: number;
+  strokeWidth?: number;
+  color: string;
   children?: React.ReactNode;
 }) {
   const radius = (size - strokeWidth) / 2;
@@ -47,11 +137,30 @@ function RingProgress({ value, max, size = 64, strokeWidth = 5, color, children 
   const pct = Math.min(value / max, 1);
   const offset = circumference * (1 - pct);
   return (
-    <div className="relative inline-flex items-center justify-center" style={{ width: size, height: size }}>
+    <div
+      className="relative inline-flex items-center justify-center"
+      style={{ width: size, height: size }}
+    >
       <svg width={size} height={size} className="-rotate-90">
-        <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke="#262626" strokeWidth={strokeWidth} />
-        <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke={color} strokeWidth={strokeWidth}
-          strokeDasharray={circumference} strokeDashoffset={offset} strokeLinecap="round" />
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          fill="none"
+          stroke="#262626"
+          strokeWidth={strokeWidth}
+        />
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          fill="none"
+          stroke={color}
+          strokeWidth={strokeWidth}
+          strokeDasharray={circumference}
+          strokeDashoffset={offset}
+          strokeLinecap="round"
+        />
       </svg>
       <div className="absolute flex flex-col items-center">{children}</div>
     </div>
@@ -59,7 +168,13 @@ function RingProgress({ value, max, size = 64, strokeWidth = 5, color, children 
 }
 
 // Barcode Scanner Component
-function BarcodeScanner({ onScan, onClose }: { onScan: (code: string) => void; onClose: () => void }) {
+function BarcodeScanner({
+  onScan,
+  onClose,
+}: {
+  onScan: (code: string) => void;
+  onClose: () => void;
+}) {
   const scannerRef = useRef<HTMLDivElement>(null);
   const scannerInstance = useRef<Html5Qrcode | null>(null);
 
@@ -78,7 +193,7 @@ function BarcodeScanner({ onScan, onClose }: { onScan: (code: string) => void; o
             scanner.stop().catch(() => {});
             onScan(decodedText);
           },
-          () => {}
+          () => {},
         );
       } catch (err) {
         console.error("Camera error:", err);
@@ -94,7 +209,9 @@ function BarcodeScanner({ onScan, onClose }: { onScan: (code: string) => void; o
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <p className="text-sm font-medium">Barcode scannen</p>
-        <button onClick={onClose}><X className="h-4 w-4 text-neutral-500" /></button>
+        <button onClick={onClose}>
+          <X className="h-4 w-4 text-neutral-500" />
+        </button>
       </div>
       <div ref={scannerRef} id="barcode-reader" className="overflow-hidden rounded-xl" />
       <p className="text-center text-xs text-neutral-500">Halte den Barcode vor die Kamera</p>
@@ -103,7 +220,13 @@ function BarcodeScanner({ onScan, onClose }: { onScan: (code: string) => void; o
 }
 
 // AI Freitext Component
-function AIFreitext({ onResults, onClose }: { onResults: (items: AIFoodItem[]) => void; onClose: () => void }) {
+function AIFreitext({
+  onResults,
+  onClose,
+}: {
+  onResults: (items: AIFoodItem[]) => void;
+  onClose: () => void;
+}) {
   const [text, setText] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -125,7 +248,9 @@ function AIFreitext({ onResults, onClose }: { onResults: (items: AIFoodItem[]) =
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <p className="text-sm font-medium">AI Freitext</p>
-        <button onClick={onClose}><X className="h-4 w-4 text-neutral-500" /></button>
+        <button onClick={onClose}>
+          <X className="h-4 w-4 text-neutral-500" />
+        </button>
       </div>
       <textarea
         value={text}
@@ -135,8 +260,11 @@ function AIFreitext({ onResults, onClose }: { onResults: (items: AIFoodItem[]) =
         rows={3}
       />
       {error && <p className="text-xs text-red-500">{error}</p>}
-      <button onClick={submit} disabled={!text.trim() || loading}
-        className="w-full rounded-xl bg-white py-2.5 text-sm font-semibold text-black disabled:opacity-30 active:scale-[0.98]">
+      <button
+        onClick={submit}
+        disabled={!text.trim() || loading}
+        className="w-full rounded-xl bg-white py-2.5 text-sm font-semibold text-black disabled:opacity-30 active:scale-[0.98]"
+      >
         {loading ? "Analysiere..." : "Analysieren"}
       </button>
     </div>
@@ -213,9 +341,23 @@ export function NutritionWaterPage() {
   const fetchData = useCallback(async () => {
     setLoading(true);
     const [nRes, wRes, profileRes] = await Promise.all([
-      supabase.from("nutrition_log").select("*").eq("user_id", USER_ID).eq("date", selectedDate).order("created_at"),
-      supabase.from("water_log").select("*").eq("user_id", USER_ID).eq("date", selectedDate).order("logged_at"),
-      supabase.from("user_profiles").select("calorie_goal, water_goal_ml").eq("id", USER_ID).single(),
+      supabase
+        .from("nutrition_log")
+        .select("*")
+        .eq("user_id", USER_ID)
+        .eq("date", selectedDate)
+        .order("created_at"),
+      supabase
+        .from("water_log")
+        .select("*")
+        .eq("user_id", USER_ID)
+        .eq("date", selectedDate)
+        .order("logged_at"),
+      supabase
+        .from("user_profiles")
+        .select("calorie_goal, water_goal_ml")
+        .eq("id", USER_ID)
+        .single(),
     ]);
     if (nRes.data) setLogs(nRes.data as NutritionLog[]);
     if (wRes.data) setWaterLogs(wRes.data as WaterLog[]);
@@ -223,13 +365,20 @@ export function NutritionWaterPage() {
       setCalorieGoal(profileRes.data.calorie_goal ?? 2500);
       setWaterGoalMl(profileRes.data.water_goal_ml ?? 3000);
     }
-    const { data: wt } = await supabase.from("weight_log").select("weight_kg").eq("user_id", USER_ID)
-      .order("date", { ascending: false }).limit(1).single();
+    const { data: wt } = await supabase
+      .from("weight_log")
+      .select("weight_kg")
+      .eq("user_id", USER_ID)
+      .order("date", { ascending: false })
+      .limit(1)
+      .single();
     if (wt) setBodyWeight(wt.weight_kg);
     setLoading(false);
   }, [selectedDate]);
 
-  useEffect(() => { fetchData(); }, [fetchData]);
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   const goals = calculateMacros(calorieGoal, bodyWeight);
 
@@ -238,13 +387,20 @@ export function NutritionWaterPage() {
     setSearchQuery(value);
     clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(async () => {
-      if (value.length < 2) { setSearchResults([]); return; }
+      if (value.length < 2) {
+        setSearchResults([]);
+        return;
+      }
       setSearching(true);
       try {
         const [fatSecretRes, customRes] = await Promise.all([
           searchFoods(value).catch(() => ({ results: [], totalResults: 0 })),
-          supabase.from("custom_foods").select("*").eq("user_id", USER_ID)
-            .ilike("name", `%${value}%`).limit(5)
+          supabase
+            .from("custom_foods")
+            .select("*")
+            .eq("user_id", USER_ID)
+            .ilike("name", `%${value}%`)
+            .limit(5)
             .then(({ data }) => data ?? []),
         ]);
 
@@ -268,14 +424,20 @@ export function NutritionWaterPage() {
     // Custom food
     if (result.id.startsWith("custom_")) {
       const name = result.name.replace(/^★\s*/, "");
-      const { data } = await supabase.from("custom_foods").select("*").eq("user_id", USER_ID).eq("name", name).single();
+      const { data } = await supabase
+        .from("custom_foods")
+        .select("*")
+        .eq("user_id", USER_ID)
+        .eq("name", name)
+        .single();
       if (data) {
         setFoodName(data.name);
         setBaseCal(data.calories_100);
         setBaseProt(data.protein_100);
         setBaseCarbs(data.carbs_100);
         setBaseFat(data.fat_100);
-        setBaseFiber(0); setBaseMicros(ZERO_MICROS);
+        setBaseFiber(0);
+        setBaseMicros(ZERO_MICROS);
         setFoodSource("custom");
         setQuantityUnit(guessUnit(data.name));
         setQuantity(100);
@@ -313,9 +475,12 @@ export function NutritionWaterPage() {
       setBaseFiber(Math.round(serving.fiber * normFactor * 10) / 10);
       const r1 = (n: number) => Math.round(n * normFactor * 10) / 10;
       setBaseMicros({
-        vitamin_a_mcg: r1(serving.vitaminA), vitamin_c_mg: r1(serving.vitaminC),
-        vitamin_d_mcg: r1(serving.vitaminD), calcium_mg: r1(serving.calcium),
-        iron_mg: r1(serving.iron), potassium_mg: r1(serving.potassium),
+        vitamin_a_mcg: r1(serving.vitaminA),
+        vitamin_c_mg: r1(serving.vitaminC),
+        vitamin_d_mcg: r1(serving.vitaminD),
+        calcium_mg: r1(serving.calcium),
+        iron_mg: r1(serving.iron),
+        potassium_mg: r1(serving.potassium),
         sodium_mg: r1(serving.sodium),
       });
       setQuantityUnit(serving.metricUnit === "ml" ? "ml" : "g");
@@ -353,7 +518,8 @@ export function NutritionWaterPage() {
     setBaseProt(Math.round((item.protein_g / item.amount_g) * 100 * 10) / 10);
     setBaseCarbs(Math.round((item.carbs_g / item.amount_g) * 100 * 10) / 10);
     setBaseFat(Math.round((item.fat_g / item.amount_g) * 100 * 10) / 10);
-    setBaseFiber(0); setBaseMicros(ZERO_MICROS);
+    setBaseFiber(0);
+    setBaseMicros(ZERO_MICROS);
     setQuantity(item.amount_g);
     setQuantityUnit("g");
     setFoodSource("ai");
@@ -368,7 +534,8 @@ export function NutritionWaterPage() {
     setBaseProt(recent.protein_100);
     setBaseCarbs(recent.carbs_100);
     setBaseFat(recent.fat_100);
-    setBaseFiber(0); setBaseMicros(ZERO_MICROS);
+    setBaseFiber(0);
+    setBaseMicros(ZERO_MICROS);
     setFoodSource(recent.source);
     setQuantityUnit("g");
     setQuantity(100);
@@ -380,19 +547,32 @@ export function NutritionWaterPage() {
     const { data } = await supabase
       .from("nutrition_log")
       .insert({
-        user_id: USER_ID, date: selectedDate, meal_type: activeTab as MealType,
-        food_name: foodName.trim(), barcode,
-        calories: liveCal, protein_g: liveProt, carbs_g: liveCarbs, fat_g: liveFat,
-        fiber_g: liveFiber, quantity_g: quantity, ...scaleMicros(),
+        user_id: USER_ID,
+        date: selectedDate,
+        meal_type: activeTab as MealType,
+        food_name: foodName.trim(),
+        barcode,
+        calories: liveCal,
+        protein_g: liveProt,
+        carbs_g: liveCarbs,
+        fat_g: liveFat,
+        fiber_g: liveFiber,
+        quantity_g: quantity,
+        ...scaleMicros(),
       })
-      .select().single();
+      .select()
+      .single();
     if (data) {
       setLogs((prev) => [...prev, data as NutritionLog]);
       // Save to recent foods
       addRecentFood({
         name: foodName.trim().replace(/^★\s*/, ""),
-        calories_100: baseCal, protein_100: baseProt, carbs_100: baseCarbs, fat_100: baseFat,
-        source: foodSource, lastUsed: Date.now(),
+        calories_100: baseCal,
+        protein_100: baseProt,
+        carbs_100: baseCarbs,
+        fat_100: baseFat,
+        source: foodSource,
+        lastUsed: Date.now(),
       });
       resetForm();
     }
@@ -400,18 +580,36 @@ export function NutritionWaterPage() {
 
   const saveCustomFood = async () => {
     if (!foodName.trim() || baseCal === 0) return;
-    await supabase.from("custom_foods").upsert({
-      user_id: USER_ID,
-      name: foodName.trim().replace(/^★\s*/, ""),
-      calories_100: baseCal, protein_100: baseProt, carbs_100: baseCarbs, fat_100: baseFat,
-    }, { onConflict: "user_id,name" });
+    await supabase.from("custom_foods").upsert(
+      {
+        user_id: USER_ID,
+        name: foodName.trim().replace(/^★\s*/, ""),
+        calories_100: baseCal,
+        protein_100: baseProt,
+        carbs_100: baseCarbs,
+        fat_100: baseFat,
+      },
+      { onConflict: "user_id,name" },
+    );
   };
 
   const resetForm = () => {
-    setFoodName(""); setBarcode(null); setBaseCal(0); setBaseProt(0); setBaseCarbs(0); setBaseFat(0);
-    setBaseFiber(0); setBaseMicros(ZERO_MICROS);
-    setQuantity(100); setQuantityUnit("g"); setShowAddForm(false); setAddMode(null);
-    setSearchQuery(""); setSearchResults([]); setAiResults([]); setFoodSource("search");
+    setFoodName("");
+    setBarcode(null);
+    setBaseCal(0);
+    setBaseProt(0);
+    setBaseCarbs(0);
+    setBaseFat(0);
+    setBaseFiber(0);
+    setBaseMicros(ZERO_MICROS);
+    setQuantity(100);
+    setQuantityUnit("g");
+    setShowAddForm(false);
+    setAddMode(null);
+    setSearchQuery("");
+    setSearchResults([]);
+    setAiResults([]);
+    setFoodSource("search");
   };
 
   const deleteEntry = async (id: string) => {
@@ -423,7 +621,8 @@ export function NutritionWaterPage() {
     const { data } = await supabase
       .from("water_log")
       .insert({ user_id: USER_ID, date: selectedDate, amount_ml: amount })
-      .select().single();
+      .select()
+      .single();
     if (data) setWaterLogs((prev) => [...prev, data as WaterLog]);
   };
 
@@ -433,13 +632,22 @@ export function NutritionWaterPage() {
   };
 
   const totals = logs.reduce(
-    (acc, l) => ({ calories: acc.calories + l.calories, protein: acc.protein + l.protein_g, carbs: acc.carbs + l.carbs_g, fat: acc.fat + l.fat_g }),
-    { calories: 0, protein: 0, carbs: 0, fat: 0 }
+    (acc, l) => ({
+      calories: acc.calories + l.calories,
+      protein: acc.protein + l.protein_g,
+      carbs: acc.carbs + l.carbs_g,
+      fat: acc.fat + l.fat_g,
+    }),
+    { calories: 0, protein: 0, carbs: 0, fat: 0 },
   );
   const waterTotalMl = waterLogs.reduce((s, w) => s + w.amount_ml, 0);
-  const mealTotals = (mt: MealType) => logs.filter((l) => l.meal_type === mt).reduce((a, l) => a + l.calories, 0);
+  const mealTotals = (mt: MealType) =>
+    logs.filter((l) => l.meal_type === mt).reduce((a, l) => a + l.calories, 0);
 
-  if (loading) return <div className="flex min-h-screen items-center justify-center text-neutral-500">Laden...</div>;
+  if (loading)
+    return (
+      <div className="flex min-h-screen items-center justify-center text-neutral-500">Laden...</div>
+    );
 
   const remaining = goals.calories - totals.calories;
 
@@ -449,8 +657,10 @@ export function NutritionWaterPage() {
       <div className="rounded-2xl bg-card p-5">
         <div className="flex items-center justify-between mb-1">
           <h1 className="text-lg font-bold">Ernährung</h1>
-          <button onClick={() => navigate("/ernaehrung/mikro")}
-            className="flex items-center gap-1.5 rounded-lg bg-neutral-800 px-2.5 py-1.5 transition-all active:scale-95">
+          <button
+            onClick={() => navigate("/ernaehrung/mikro")}
+            className="flex items-center gap-1.5 rounded-lg bg-neutral-800 px-2.5 py-1.5 transition-all active:scale-95"
+          >
             <Pill className="h-3.5 w-3.5 text-emerald-400" />
             <span className="text-[10px] font-medium text-neutral-400">Mikro</span>
           </button>
@@ -458,17 +668,23 @@ export function NutritionWaterPage() {
 
         {/* Date navigation — centered */}
         <div className="flex items-center justify-center gap-3 mb-3">
-          <button onClick={() => setSelectedDate(shiftDate(selectedDate, -1))}
-            className="rounded-lg p-1.5 transition-all active:scale-90">
+          <button
+            onClick={() => setSelectedDate(shiftDate(selectedDate, -1))}
+            className="rounded-lg p-1.5 transition-all active:scale-90"
+          >
             <ChevronLeft className="h-5 w-5 text-neutral-400" />
           </button>
-          <button onClick={() => setSelectedDate(todayString())}
-            className="flex items-center gap-1.5">
+          <button
+            onClick={() => setSelectedDate(todayString())}
+            className="flex items-center gap-1.5"
+          >
             <Calendar className="h-3.5 w-3.5 text-neutral-500" />
             <span className="text-sm font-medium">{formatDateLabel(selectedDate)}</span>
           </button>
-          <button onClick={() => setSelectedDate(shiftDate(selectedDate, 1))}
-            className={`rounded-lg p-1.5 transition-all active:scale-90 ${isToday ? "opacity-30 pointer-events-none" : ""}`}>
+          <button
+            onClick={() => setSelectedDate(shiftDate(selectedDate, 1))}
+            className={`rounded-lg p-1.5 transition-all active:scale-90 ${isToday ? "opacity-30 pointer-events-none" : ""}`}
+          >
             <ChevronRight className="h-5 w-5 text-neutral-400" />
           </button>
         </div>
@@ -479,8 +695,13 @@ export function NutritionWaterPage() {
             <span className="text-xl font-bold">{totals.calories}</span>
           </div>
 
-          <RingProgress value={totals.calories} max={goals.calories} size={120} strokeWidth={8}
-            color={remaining >= 0 ? "#22c55e" : "#ef4444"}>
+          <RingProgress
+            value={totals.calories}
+            max={goals.calories}
+            size={120}
+            strokeWidth={8}
+            color={remaining >= 0 ? "#22c55e" : "#ef4444"}
+          >
             <span className="text-[10px] text-neutral-500">Übrig</span>
             <span className={`text-2xl font-bold ${remaining < 0 ? "text-red-500" : ""}`}>
               {Math.abs(remaining)}
@@ -496,8 +717,18 @@ export function NutritionWaterPage() {
 
         {/* Macro bars — 3 column */}
         <div className="grid grid-cols-3 gap-3 pt-2">
-          <MacroCard label="Kohlenhydrate" current={totals.carbs} goal={goals.carbs} color="#f59e0b" />
-          <MacroCard label="Protein" current={totals.protein} goal={goals.protein} color="#22c55e" />
+          <MacroCard
+            label="Kohlenhydrate"
+            current={totals.carbs}
+            goal={goals.carbs}
+            color="#f59e0b"
+          />
+          <MacroCard
+            label="Protein"
+            current={totals.protein}
+            goal={goals.protein}
+            color="#22c55e"
+          />
           <MacroCard label="Fett" current={totals.fat} goal={goals.fat} color="#ef4444" />
         </div>
       </div>
@@ -508,20 +739,33 @@ export function NutritionWaterPage() {
           const mealCal = mealTotals(meal.type);
           const isActive = activeTab === meal.type;
           return (
-            <button key={meal.type} onClick={() => { setActiveTab(meal.type); setShowAddForm(false); resetForm(); }}
+            <button
+              key={meal.type}
+              onClick={() => {
+                setActiveTab(meal.type);
+                setShowAddForm(false);
+                resetForm();
+              }}
               className={`flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-2 text-xs font-medium transition-all ${
                 isActive ? "bg-white text-black" : "bg-card text-neutral-400"
-              }`}>
+              }`}
+            >
               <meal.icon className="h-3.5 w-3.5" strokeWidth={1.5} />
               {meal.label}
               {mealCal > 0 && <span className="text-[10px] opacity-60">{mealCal}</span>}
             </button>
           );
         })}
-        <button onClick={() => { setActiveTab("water"); setShowAddForm(false); resetForm(); }}
+        <button
+          onClick={() => {
+            setActiveTab("water");
+            setShowAddForm(false);
+            resetForm();
+          }}
           className={`flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-2 text-xs font-medium transition-all ${
             activeTab === "water" ? "bg-blue-500 text-white" : "bg-card text-neutral-400"
-          }`}>
+          }`}
+        >
           <Droplets className="h-3.5 w-3.5" strokeWidth={1.5} />
           Wasser
         </button>
@@ -530,15 +774,24 @@ export function NutritionWaterPage() {
       {activeTab === "water" ? (
         <div className="space-y-3">
           <div className="flex flex-col items-center gap-4 rounded-2xl bg-card p-6">
-            <RingProgress value={waterTotalMl} max={waterGoalMl} size={110} strokeWidth={8} color="#3b82f6">
+            <RingProgress
+              value={waterTotalMl}
+              max={waterGoalMl}
+              size={110}
+              strokeWidth={8}
+              color="#3b82f6"
+            >
               <Droplets className="h-5 w-5 text-blue-400" />
               <span className="text-lg font-bold">{waterTotalMl}ml</span>
               <span className="text-[10px] text-neutral-500">von {waterGoalMl}ml</span>
             </RingProgress>
             <div className="flex gap-2">
               {[250, 500, 750].map((ml) => (
-                <button key={ml} onClick={() => addWater(ml)}
-                  className="rounded-xl bg-neutral-800 px-4 py-2 text-sm font-medium transition-all active:scale-95">
+                <button
+                  key={ml}
+                  onClick={() => addWater(ml)}
+                  className="rounded-xl bg-neutral-800 px-4 py-2 text-sm font-medium transition-all active:scale-95"
+                >
                   +{ml}ml
                 </button>
               ))}
@@ -546,13 +799,22 @@ export function NutritionWaterPage() {
           </div>
           <div className="space-y-1.5">
             {waterLogs.map((log) => (
-              <div key={log.id} className="flex items-center justify-between rounded-xl bg-card p-3 text-sm">
+              <div
+                key={log.id}
+                className="flex items-center justify-between rounded-xl bg-card p-3 text-sm"
+              >
                 <span>{log.amount_ml} ml</span>
                 <div className="flex items-center gap-3">
                   <span className="text-xs text-neutral-500">
-                    {new Date(log.logged_at).toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" })}
+                    {new Date(log.logged_at).toLocaleTimeString("de-DE", {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
                   </span>
-                  <button onClick={() => deleteWater(log.id)} className="text-neutral-600 active:text-red-500">
+                  <button
+                    onClick={() => deleteWater(log.id)}
+                    className="text-neutral-600 active:text-red-500"
+                  >
                     <X className="h-4 w-4" />
                   </button>
                 </div>
@@ -566,31 +828,50 @@ export function NutritionWaterPage() {
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-semibold text-neutral-400">Essensprotokoll</h2>
             <span className="text-xs text-neutral-600">
-              {(() => { const m = mealConfig.find((m) => m.type === activeTab)!; const cal = mealTotals(m.type); const goal = Math.round(goals.calories * m.pct); const r = goal - cal; return r > 0 ? `${r} kcal übrig` : `${Math.abs(r)} drüber`; })()}
+              {(() => {
+                const m = mealConfig.find((m) => m.type === activeTab)!;
+                const cal = mealTotals(m.type);
+                const goal = Math.round(goals.calories * m.pct);
+                const r = goal - cal;
+                return r > 0 ? `${r} kcal übrig` : `${Math.abs(r)} drüber`;
+              })()}
             </span>
           </div>
 
           {/* Food entries with macro badges */}
-          {logs.filter((l) => l.meal_type === activeTab).map((item) => (
-            <div key={item.id} className="flex items-center gap-3 rounded-2xl bg-card p-3.5">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-neutral-800">
-                <Apple className="h-5 w-5 text-neutral-500" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate">{item.food_name}</p>
-                <div className="mt-1 flex items-center gap-1.5 flex-wrap">
-                  <span className="text-xs text-neutral-500">{item.quantity_g}g</span>
-                  <span className="text-xs font-semibold text-orange-400">{item.calories} kcal</span>
-                  <span className="rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-medium text-amber-400">K {item.carbs_g}g</span>
-                  <span className="rounded-full bg-green-500/15 px-1.5 py-0.5 text-[10px] font-medium text-green-400">P {item.protein_g}g</span>
-                  <span className="rounded-full bg-red-500/15 px-1.5 py-0.5 text-[10px] font-medium text-red-400">F {item.fat_g}g</span>
+          {logs
+            .filter((l) => l.meal_type === activeTab)
+            .map((item) => (
+              <div key={item.id} className="flex items-center gap-3 rounded-2xl bg-card p-3.5">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-neutral-800">
+                  <Apple className="h-5 w-5 text-neutral-500" />
                 </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium truncate">{item.food_name}</p>
+                  <div className="mt-1 flex items-center gap-1.5 flex-wrap">
+                    <span className="text-xs text-neutral-500">{item.quantity_g}g</span>
+                    <span className="text-xs font-semibold text-orange-400">
+                      {item.calories} kcal
+                    </span>
+                    <span className="rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-medium text-amber-400">
+                      K {item.carbs_g}g
+                    </span>
+                    <span className="rounded-full bg-green-500/15 px-1.5 py-0.5 text-[10px] font-medium text-green-400">
+                      P {item.protein_g}g
+                    </span>
+                    <span className="rounded-full bg-red-500/15 px-1.5 py-0.5 text-[10px] font-medium text-red-400">
+                      F {item.fat_g}g
+                    </span>
+                  </div>
+                </div>
+                <button
+                  onClick={() => deleteEntry(item.id)}
+                  className="shrink-0 text-neutral-600 active:text-red-500"
+                >
+                  <X className="h-4 w-4" />
+                </button>
               </div>
-              <button onClick={() => deleteEntry(item.id)} className="shrink-0 text-neutral-600 active:text-red-500">
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-          ))}
+            ))}
 
           {/* Add food section */}
           {showAddForm ? (
@@ -600,21 +881,29 @@ export function NutritionWaterPage() {
                 <>
                   <div className="flex items-center justify-between">
                     <p className="text-sm font-medium">Essen hinzufügen</p>
-                    <button onClick={resetForm}><X className="h-4 w-4 text-neutral-500" /></button>
+                    <button onClick={resetForm}>
+                      <X className="h-4 w-4 text-neutral-500" />
+                    </button>
                   </div>
                   <div className="grid grid-cols-3 gap-2">
-                    <button onClick={() => setAddMode("search")}
-                      className="flex flex-col items-center gap-2 rounded-xl bg-neutral-800 p-4 transition-all active:scale-95">
+                    <button
+                      onClick={() => setAddMode("search")}
+                      className="flex flex-col items-center gap-2 rounded-xl bg-neutral-800 p-4 transition-all active:scale-95"
+                    >
                       <Search className="h-6 w-6 text-blue-400" />
                       <span className="text-xs font-medium">Suche</span>
                     </button>
-                    <button onClick={() => setAddMode("barcode")}
-                      className="flex flex-col items-center gap-2 rounded-xl bg-neutral-800 p-4 transition-all active:scale-95">
+                    <button
+                      onClick={() => setAddMode("barcode")}
+                      className="flex flex-col items-center gap-2 rounded-xl bg-neutral-800 p-4 transition-all active:scale-95"
+                    >
                       <Camera className="h-6 w-6 text-green-400" />
                       <span className="text-xs font-medium">Barcode</span>
                     </button>
-                    <button onClick={() => setAddMode("ai")}
-                      className="flex flex-col items-center gap-2 rounded-xl bg-neutral-800 p-4 transition-all active:scale-95">
+                    <button
+                      onClick={() => setAddMode("ai")}
+                      className="flex flex-col items-center gap-2 rounded-xl bg-neutral-800 p-4 transition-all active:scale-95"
+                    >
                       <MessageSquare className="h-6 w-6 text-purple-400" />
                       <span className="text-xs font-medium">AI Text</span>
                     </button>
@@ -631,10 +920,15 @@ export function NutritionWaterPage() {
                         </p>
                         <div className="space-y-1">
                           {recents.slice(0, 5).map((r, i) => (
-                            <button key={i} onClick={() => selectRecent(r)}
-                              className="flex w-full items-center justify-between rounded-lg bg-neutral-800/50 px-3 py-2 text-left transition-all active:scale-[0.98]">
+                            <button
+                              key={i}
+                              onClick={() => selectRecent(r)}
+                              className="flex w-full items-center justify-between rounded-lg bg-neutral-800/50 px-3 py-2 text-left transition-all active:scale-[0.98]"
+                            >
                               <span className="text-sm">{r.name}</span>
-                              <span className="text-xs text-neutral-500">{r.calories_100} kcal/100g</span>
+                              <span className="text-xs text-neutral-500">
+                                {r.calories_100} kcal/100g
+                              </span>
                             </button>
                           ))}
                         </div>
@@ -659,24 +953,38 @@ export function NutritionWaterPage() {
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <p className="text-sm font-medium">AI-Ergebnisse</p>
-                    <button onClick={() => { setAiResults([]); setAddMode(null); }}>
+                    <button
+                      onClick={() => {
+                        setAiResults([]);
+                        setAddMode(null);
+                      }}
+                    >
                       <X className="h-4 w-4 text-neutral-500" />
                     </button>
                   </div>
                   {aiResults.map((item, i) => (
-                    <button key={i} onClick={() => addAIItem(item)}
-                      className="flex w-full items-center justify-between rounded-xl bg-neutral-800 p-3 text-left transition-all active:scale-[0.98]">
+                    <button
+                      key={i}
+                      onClick={() => addAIItem(item)}
+                      className="flex w-full items-center justify-between rounded-xl bg-neutral-800 p-3 text-left transition-all active:scale-[0.98]"
+                    >
                       <div>
                         <p className="text-sm font-medium">{item.name}</p>
-                        <p className="text-xs text-neutral-500">{item.amount_g}g · {item.calories} kcal</p>
+                        <p className="text-xs text-neutral-500">
+                          {item.amount_g}g · {item.calories} kcal
+                        </p>
                       </div>
                       <div className="text-right text-xs text-neutral-500">
                         <p>P{item.protein_g}g</p>
-                        <p>K{item.carbs_g}g · F{item.fat_g}g</p>
+                        <p>
+                          K{item.carbs_g}g · F{item.fat_g}g
+                        </p>
                       </div>
                     </button>
                   ))}
-                  <p className="text-center text-[10px] text-neutral-600">Tippe ein Lebensmittel an um es hinzuzufügen</p>
+                  <p className="text-center text-[10px] text-neutral-600">
+                    Tippe ein Lebensmittel an um es hinzuzufügen
+                  </p>
                 </div>
               )}
 
@@ -685,19 +993,29 @@ export function NutritionWaterPage() {
                 <>
                   <div className="flex items-center justify-between">
                     <p className="text-sm font-medium">Suche</p>
-                    <button onClick={() => setAddMode(null)}><X className="h-4 w-4 text-neutral-500" /></button>
+                    <button onClick={() => setAddMode(null)}>
+                      <X className="h-4 w-4 text-neutral-500" />
+                    </button>
                   </div>
                   <div className="relative">
                     <Search className="absolute left-3 top-3 h-4 w-4 text-neutral-500" />
-                    <Input value={searchQuery} onChange={(e) => handleSearchChange(e.target.value)}
-                      placeholder="Produkt suchen..." className="bg-neutral-800 border-none pl-9" autoFocus />
+                    <Input
+                      value={searchQuery}
+                      onChange={(e) => handleSearchChange(e.target.value)}
+                      placeholder="Produkt suchen..."
+                      className="bg-neutral-800 border-none pl-9"
+                      autoFocus
+                    />
                   </div>
                   {searching && <p className="text-xs text-neutral-500">Suche...</p>}
                   {searchResults.length > 0 && (
                     <div className="max-h-48 overflow-y-auto rounded-lg border border-neutral-800">
                       {searchResults.map((r, i) => (
-                        <button key={i} className="w-full px-3 py-2.5 text-left hover:bg-neutral-800 border-b border-neutral-800/50 last:border-0"
-                          onClick={() => selectSearchResult(r)}>
+                        <button
+                          key={i}
+                          className="w-full px-3 py-2.5 text-left hover:bg-neutral-800 border-b border-neutral-800/50 last:border-0"
+                          onClick={() => selectSearchResult(r)}
+                        >
                           <p className="text-sm">{r.name}</p>
                           {r.brand && <p className="text-xs text-neutral-500">{r.brand}</p>}
                         </button>
@@ -712,19 +1030,35 @@ export function NutritionWaterPage() {
                 <>
                   <div className="flex items-center justify-between">
                     <p className="text-sm font-medium">Details anpassen</p>
-                    <button onClick={resetForm}><X className="h-4 w-4 text-neutral-500" /></button>
+                    <button onClick={resetForm}>
+                      <X className="h-4 w-4 text-neutral-500" />
+                    </button>
                   </div>
-                  <Input value={foodName} onChange={(e) => setFoodName(e.target.value)}
-                    placeholder="Name" className="bg-neutral-800 border-none" />
+                  <Input
+                    value={foodName}
+                    onChange={(e) => setFoodName(e.target.value)}
+                    placeholder="Name"
+                    className="bg-neutral-800 border-none"
+                  />
                   <div className="flex gap-2">
-                    <Input type="number" value={quantity} onChange={(e) => setQuantity(Number(e.target.value))}
-                      placeholder="Menge" className="bg-neutral-800 border-none flex-1" />
+                    <Input
+                      type="number"
+                      value={quantity}
+                      onChange={(e) => setQuantity(Number(e.target.value))}
+                      placeholder="Menge"
+                      className="bg-neutral-800 border-none flex-1"
+                    />
                     <div className="flex gap-1">
                       {(["g", "ml", "stück"] as QuantityUnit[]).map((u) => (
-                        <button key={u} onClick={() => setQuantityUnit(u)}
+                        <button
+                          key={u}
+                          onClick={() => setQuantityUnit(u)}
                           className={`rounded-lg px-3 py-2 text-xs font-medium ${
-                            quantityUnit === u ? "bg-white text-black" : "bg-neutral-800 text-neutral-400"
-                          }`}>
+                            quantityUnit === u
+                              ? "bg-white text-black"
+                              : "bg-neutral-800 text-neutral-400"
+                          }`}
+                        >
                           {u}
                         </button>
                       ))}
@@ -732,25 +1066,53 @@ export function NutritionWaterPage() {
                   </div>
                   <div className="grid grid-cols-4 gap-2">
                     <div className="space-y-1">
-                      <label className="text-[10px] text-neutral-500">kcal/100{quantityUnit === "stück" ? "St" : quantityUnit}</label>
-                      <Input type="number" value={baseCal || ""} onChange={(e) => setBaseCal(Number(e.target.value))} className="bg-neutral-800 border-none" />
+                      <label className="text-[10px] text-neutral-500">
+                        kcal/100{quantityUnit === "stück" ? "St" : quantityUnit}
+                      </label>
+                      <Input
+                        type="number"
+                        value={baseCal || ""}
+                        onChange={(e) => setBaseCal(Number(e.target.value))}
+                        className="bg-neutral-800 border-none"
+                      />
                     </div>
                     <div className="space-y-1">
                       <label className="text-[10px] text-neutral-500">Protein</label>
-                      <Input type="number" step="0.1" value={baseProt || ""} onChange={(e) => setBaseProt(Number(e.target.value))} className="bg-neutral-800 border-none" />
+                      <Input
+                        type="number"
+                        step="0.1"
+                        value={baseProt || ""}
+                        onChange={(e) => setBaseProt(Number(e.target.value))}
+                        className="bg-neutral-800 border-none"
+                      />
                     </div>
                     <div className="space-y-1">
                       <label className="text-[10px] text-neutral-500">Carbs</label>
-                      <Input type="number" step="0.1" value={baseCarbs || ""} onChange={(e) => setBaseCarbs(Number(e.target.value))} className="bg-neutral-800 border-none" />
+                      <Input
+                        type="number"
+                        step="0.1"
+                        value={baseCarbs || ""}
+                        onChange={(e) => setBaseCarbs(Number(e.target.value))}
+                        className="bg-neutral-800 border-none"
+                      />
                     </div>
                     <div className="space-y-1">
                       <label className="text-[10px] text-neutral-500">Fett</label>
-                      <Input type="number" step="0.1" value={baseFat || ""} onChange={(e) => setBaseFat(Number(e.target.value))} className="bg-neutral-800 border-none" />
+                      <Input
+                        type="number"
+                        step="0.1"
+                        value={baseFat || ""}
+                        onChange={(e) => setBaseFat(Number(e.target.value))}
+                        className="bg-neutral-800 border-none"
+                      />
                     </div>
                   </div>
                   {baseCal > 0 && (
                     <div className="flex items-center justify-between rounded-lg bg-neutral-800/60 px-3 py-2 text-xs">
-                      <span className="text-neutral-400">{quantity}{quantityUnit === "stück" ? " St" : quantityUnit} =</span>
+                      <span className="text-neutral-400">
+                        {quantity}
+                        {quantityUnit === "stück" ? " St" : quantityUnit} =
+                      </span>
                       <span className="font-medium text-orange-400">{liveCal} kcal</span>
                       <span className="text-green-400">P {liveProt}g</span>
                       <span className="text-amber-400">K {liveCarbs}g</span>
@@ -758,12 +1120,18 @@ export function NutritionWaterPage() {
                     </div>
                   )}
                   <div className="flex gap-2">
-                    <button onClick={addEntry} disabled={!foodName.trim()}
-                      className="flex-1 rounded-xl bg-white py-2.5 text-sm font-semibold text-black disabled:opacity-30 active:scale-[0.98]">
+                    <button
+                      onClick={addEntry}
+                      disabled={!foodName.trim()}
+                      className="flex-1 rounded-xl bg-white py-2.5 text-sm font-semibold text-black disabled:opacity-30 active:scale-[0.98]"
+                    >
                       Hinzufügen
                     </button>
-                    <button onClick={saveCustomFood} disabled={!foodName.trim() || baseCal === 0}
-                      className="rounded-xl bg-neutral-800 px-4 py-2.5 text-xs font-medium text-neutral-400 disabled:opacity-30 active:scale-[0.98]">
+                    <button
+                      onClick={saveCustomFood}
+                      disabled={!foodName.trim() || baseCal === 0}
+                      className="rounded-xl bg-neutral-800 px-4 py-2.5 text-xs font-medium text-neutral-400 disabled:opacity-30 active:scale-[0.98]"
+                    >
                       <Star className="h-4 w-4" />
                     </button>
                   </div>
@@ -771,8 +1139,10 @@ export function NutritionWaterPage() {
               )}
             </div>
           ) : (
-            <button onClick={() => setShowAddForm(true)}
-              className="flex w-full items-center justify-center gap-2 rounded-xl bg-card p-3 text-sm text-neutral-400 active:scale-[0.98]">
+            <button
+              onClick={() => setShowAddForm(true)}
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-card p-3 text-sm text-neutral-400 active:scale-[0.98]"
+            >
               <Plus className="h-4 w-4" /> Essen hinzufügen
             </button>
           )}
@@ -782,16 +1152,30 @@ export function NutritionWaterPage() {
   );
 }
 
-function MacroCard({ label, current, goal, color }: {
-  label: string; current: number; goal: number; color: string;
+function MacroCard({
+  label,
+  current,
+  goal,
+  color,
+}: {
+  label: string;
+  current: number;
+  goal: number;
+  color: string;
 }) {
   const pct = Math.min((current / goal) * 100, 100);
   return (
     <div className="space-y-1.5">
       <span className="text-[10px] text-neutral-500">{label}</span>
-      <p className="text-xs font-semibold">{Math.round(current)}<span className="text-neutral-600">/{goal}g</span></p>
+      <p className="text-xs font-semibold">
+        {Math.round(current)}
+        <span className="text-neutral-600">/{goal}g</span>
+      </p>
       <div className="h-1.5 overflow-hidden rounded-full bg-neutral-800">
-        <div className="h-full rounded-full transition-all duration-300" style={{ width: `${pct}%`, backgroundColor: color }} />
+        <div
+          className="h-full rounded-full transition-all duration-300"
+          style={{ width: `${pct}%`, backgroundColor: color }}
+        />
       </div>
     </div>
   );

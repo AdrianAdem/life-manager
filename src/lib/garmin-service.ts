@@ -80,7 +80,10 @@ export interface GarminHealthEntry {
   data: GarminHealthData;
 }
 
-export async function getGarminData(startDate: string, endDate: string): Promise<GarminHealthEntry[]> {
+export async function getGarminData(
+  startDate: string,
+  endDate: string,
+): Promise<GarminHealthEntry[]> {
   const { data, error } = await supabase
     .from("garmin_health_data")
     .select("date, data")
